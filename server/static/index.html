@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AutoDataLab++ — The Office</title>
+<style>
+  :root {
+    --bg:#0b1020;
+    --bg2:#121a33;
+    --ink:#e7ecff;
+    --muted:#9aa4c7;
+    --accent:#6ea8ff;
+    --good:#45d98f;
+    --warn:#ffb347;
+    --bad:#ff6b8a;
+    --panel:#151d3a;
+    --panel2:#1b2550;
+    --border:rgba(255,255,255,0.08);
+    --glow:0 0 0 2px rgba(110,168,255,0.35), 0 0 22px rgba(110,168,255,0.35);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -200px, #1a2356 0%, #0b1020 60%) no-repeat, var(--bg);
+    color:var(--ink); min-height:100vh;
+  }
+  header {
+    display:flex; align-items:center; gap:14px; padding:14px 22px;
+    border-bottom:1px solid var(--border); background:rgba(11,16,32,0.6);
+    position:sticky; top:0; z-index:10; backdrop-filter: blur(8px);
+  }
+  header h1 { margin:0; font-size:18px; letter-spacing:0.3px; }
+  header .tag { color:var(--muted); font-size:12px; }
+  .controls { margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  select, button {
+    background:var(--panel); color:var(--ink); border:1px solid var(--border);
+    border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer;
+  }
+  button.primary { background:linear-gradient(180deg,#3e6bff,#2b4fd6); border-color:transparent; font-weight:600; }
+  button.primary:hover { filter:brightness(1.08); }
+  button:disabled { opacity:0.5; cursor:not-allowed; }
+  .speed-wrap { display:flex; gap:6px; align-items:center; font-size:12px; color:var(--muted); }
+  input[type=range] { width:110px; }
+
+  main {
+    display:grid;
+    grid-template-columns: minmax(0,1.35fr) minmax(320px,1fr);
+    gap:18px; padding:18px 22px; max-width:1480px; margin:0 auto;
+  }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  .office {
+    position:relative; background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%),
+      radial-gradient(600px 300px at 50% 0%, rgba(110,168,255,0.18), transparent 60%),
+      #0f1733;
+    border:1px solid var(--border); border-radius:18px;
+    min-height: 560px;
+    overflow:hidden;
+  }
+  .office::before {
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(180deg, transparent, black 20%, black 80%, transparent);
+    pointer-events:none;
+  }
+  .office h2 { margin:14px 18px 4px; font-size:14px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+  .office p.instruction { margin:0 18px 12px; font-size:13px; color:var(--ink); opacity:.88; }
+
+  .floor { position:relative; height:470px; margin: 8px 18px 18px; }
+  .desk {
+    position:absolute; width:180px; padding:12px; border-radius:14px;
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border:1px solid var(--border); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+  .desk .who { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .desk .avatar {
+    width:40px; height:40px; border-radius:50%;
+    background: linear-gradient(135deg, #2b376b, #1a2044);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    border:1px solid var(--border);
+  }
+  .desk .name { font-size:13px; font-weight:600; }
+  .desk .role { font-size:11px; color:var(--muted); }
+  .desk .status { font-size:11px; color:var(--muted); margin-top:2px; min-height:14px; }
+  .desk.active { border-color: var(--accent); box-shadow: var(--glow); transform: translateY(-2px); }
+  .desk.done { border-color: var(--good); }
+  .desk .chip {
+    display:inline-block; font-size:10px; padding:2px 6px; border-radius:999px;
+    background:rgba(69,217,143,0.12); color:var(--good); border:1px solid rgba(69,217,143,0.35);
+    margin-right:4px;
+  }
+  .desk .chip.warn { background:rgba(255,179,71,0.12); color:var(--warn); border-color:rgba(255,179,71,0.35); }
+
+  /* Grid positions */
+  .desk.ceo      { left:50%; top:2%;  transform:translateX(-50%); width:220px; }
+  .desk.cos      { left:50%; top:38%; transform:translateX(-50%); width:220px; }
+  .desk.analyst  { left:2%;  top:14%; }
+  .desk.finance  { right:2%; top:14%; }
+  .desk.strategy { left:2%;  bottom:6%; }
+  .desk.hr       { right:2%; bottom:6%; }
+
+  .desk.ceo .avatar { background:linear-gradient(135deg,#4a5fff,#243389); }
+  .desk.cos .avatar { background:linear-gradient(135deg,#6ea8ff,#2b4fd6); }
+
+  /* SVG wires */
+  svg.wires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .wire { stroke: rgba(110,168,255,0.22); stroke-width:2; fill:none; }
+  .wire.active { stroke: var(--accent); stroke-width:3; filter: drop-shadow(0 0 6px rgba(110,168,255,.6)); }
+  .pulse {
+    r: 6; fill: var(--accent); filter: drop-shadow(0 0 8px rgba(110,168,255,.9));
+  }
+
+  /* Message bubble */
+  .bubble {
+    position:absolute; max-width:220px; padding:8px 10px; font-size:12px;
+    background:rgba(20,28,60,0.92); border:1px solid var(--border); border-radius:10px;
+    color:var(--ink); opacity:0; transform:translateY(4px);
+    transition: opacity .25s, transform .25s; pointer-events:none;
+  }
+  .bubble.show { opacity:1; transform:translateY(0); }
+  .bubble .tiny { color:var(--muted); font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+
+  /* Right column */
+  aside {
+    display:flex; flex-direction:column; gap:14px; min-width:0;
+  }
+  .card {
+    background: var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px;
+  }
+  .card h3 { margin:0 0 10px; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .stat-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .stat {
+    flex:1 1 120px; background:var(--panel2); border:1px solid var(--border);
+    border-radius:10px; padding:10px 12px; min-width:120px;
+  }
+  .stat .k { font-size:11px; color:var(--muted); }
+  .stat .v { font-size:20px; font-weight:700; margin-top:2px; }
+  .stat .v.good { color:var(--good); }
+  .stat .v.bad { color:var(--bad); }
+
+  .bar { height:8px; background:var(--panel2); border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+  .bar > span { display:block; height:100%; width:0%; background:linear-gradient(90deg, #6ea8ff, #45d98f); transition: width .4s ease; }
+
+  .log { max-height:200px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.5; }
+  .log .line { color:var(--ink); opacity:.92; white-space:pre-wrap; word-break:break-word; }
+  .log .line .ts { color:var(--muted); margin-right:6px; }
+  .log .line.step { color:#cfe1ff; }
+  .log .line.reward.pos { color:var(--good); }
+  .log .line.reward.neg { color:var(--bad); }
+  .log .line.end { color:var(--accent); font-weight:600; }
+
+  .brief-body { font-size:13px; line-height:1.55; }
+  .brief-body .kv { display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,0.06); }
+  .brief-body .kv:last-child { border:none; }
+  .brief-body .k { color:var(--muted); }
+  .brief-body ul { margin:6px 0 0 18px; padding:0; }
+  .brief-body pre { white-space:pre-wrap; background:var(--panel2); padding:8px 10px; border-radius:8px; border:1px solid var(--border); max-height:180px; overflow:auto; }
+
+  .policy-badge {
+    display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px;
+    background:rgba(110,168,255,0.12); color:var(--accent); border:1px solid rgba(110,168,255,0.35);
+    font-size:11px; letter-spacing:.5px;
+  }
+  .policy-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  footer { text-align:center; color:var(--muted); font-size:11px; padding:20px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>AutoDataLab++ <span class="tag">— the office</span></h1>
+    <div class="tag">CEO &rarr; Chief of Staff &rarr; 4 specialists &middot; OpenEnv multi-agent env</div>
+  </div>
+  <div class="controls">
+    <label class="tag" for="task">Task</label>
+    <select id="task">
+      <option value="easy_brief">easy_brief</option>
+      <option value="medium_brief">medium_brief</option>
+      <option value="hard_brief" selected>hard_brief</option>
+    </select>
+    <label class="tag" for="policy">Policy</label>
+    <select id="policy">
+      <option value="trained" selected>trained CoS</option>
+      <option value="oracle">oracle</option>
+      <option value="roundrobin">round-robin</option>
+      <option value="single">single LLM</option>
+    </select>
+    <div class="speed-wrap">
+      <span>speed</span>
+      <input type="range" id="speed" min="200" max="2000" step="100" value="850" />
+    </div>
+    <button id="run" class="primary">Run episode</button>
+    <button id="reset">Reset</button>
+  </div>
+</header>
+
+<main>
+  <section class="office">
+    <h2>Open floor</h2>
+    <p class="instruction" id="instruction">Pick a task and press Run. The Chief of Staff will route work to specialists in real time.</p>
+
+    <div class="floor" id="floor">
+      <svg class="wires" id="wires" viewBox="0 0 1000 600" preserveAspectRatio="none">
+        <!-- wires are drawn in JS based on desk positions -->
+      </svg>
+
+      <div class="desk ceo" data-id="ceo">
+        <div class="who">
+          <div class="avatar">🧑‍💼</div>
+          <div>
+            <div class="name">CEO</div>
+            <div class="role">human — issues the brief</div>
+          </div>
+        </div>
+        <div class="status" id="st-ceo">Waiting for Chief of Staff…</div>
+      </div>
+
+      <div class="desk cos" data-id="cos">
+        <div class="who">
+          <div class="avatar">🧠</div>
+          <div>
+            <div class="name">Chief of Staff</div>
+            <div class="role">trainable orchestrator</div>
+          </div>
+        </div>
+        <div class="status" id="st-cos">Idle. <span class="policy-badge"><span class="dot"></span><span id="policy-label">trained CoS</span></span></div>
+      </div>
+
+      <div class="desk analyst" data-id="analyst">
+        <div class="who">
+          <div class="avatar">📊</div>
+          <div>
+            <div class="name">Data Analyst</div>
+            <div class="role">cleans + KPIs</div>
+          </div>
+        </div>
+        <div class="status" id="st-analyst">Waiting for a request…</div>
+      </div>
+
+      <div class="desk finance" data-id="finance">
+        <div class="who">
+          <div class="avatar">💹</div>
+          <div>
+            <div class="name">Finance</div>
+            <div class="role">forecast + variance</div>
+          </div>
+        </div>
+        <div class="status" id="st-finance">Waiting for a request…</div>
+      </div>
+
+      <div class="desk strategy" data-id="strategy">
+        <div class="who">
+          <div class="avatar">♟️</div>
+          <div>
+            <div class="name">Strategy</div>
+            <div class="role">recommendations</div>
+          </div>
+        </div>
+        <div class="status" id="st-strategy">Waiting for a request…</div>
+      </div>
+
+      <div class="desk hr" data-id="hr">
+        <div class="who">
+          <div class="avatar">📨</div>
+          <div>
+            <div class="name">HR / Comms</div>
+            <div class="role">internal memo</div>
+          </div>
+        </div>
+        <div class="status" id="st-hr">Waiting for a request…</div>
+      </div>
+
+      <div class="bubble" id="bubble"></div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h3>Episode stats</h3>
+      <div class="stat-row">
+        <div class="stat"><div class="k">Step</div><div class="v" id="stat-step">0</div></div>
+        <div class="stat"><div class="k">Cumulative reward</div><div class="v" id="stat-cum">0.00</div></div>
+        <div class="stat"><div class="k">Terminal score</div><div class="v" id="stat-term">—</div></div>
+      </div>
+      <div style="margin-top:12px;">
+        <div class="tag" style="font-size:11px;color:var(--muted)">progress</div>
+        <div class="bar"><span id="bar-progress"></span></div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="tag" style="font-size:11px;color:var(--muted)">terminal score (0 → 1)</div>
+        <div class="bar"><span id="bar-term"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Step log</h3>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="card">
+      <h3>CEO brief (live)</h3>
+      <div class="brief-body" id="brief">
+        <span class="tag">No brief yet. Watch the office.</span>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  AutoDataLab++ · OpenEnv multi-agent demo · <a href="/health">/health</a> · <a href="/tasks">/tasks</a>
+</footer>
+
+<script>
+const EXPERT_IDS = ['analyst', 'finance', 'strategy', 'hr'];
+const ACTION_EMOJI = { consult: '📩', ask: '❓', summarize: '📝', submit: '✅', noop: '…' };
+
+const $ = (id) => document.getElementById(id);
+const log = $('log');
+const bubble = $('bubble');
+const wires = $('wires');
+const floor = $('floor');
+
+let runLock = false;
+
+function setStatus(id, text, cls) {
+  const el = $('st-' + id);
+  if (!el) return;
+  el.innerHTML = text;
+  const desk = document.querySelector(`.desk[data-id="${id}"]`);
+  if (!desk) return;
+  desk.classList.remove('active', 'done');
+  if (cls) desk.classList.add(cls);
+}
+
+function clearFloor() {
+  document.querySelectorAll('.desk').forEach(d => d.classList.remove('active','done'));
+  $('st-ceo').textContent = 'Briefing the Chief of Staff…';
+  $('st-cos').innerHTML = 'Planning next move… <span class="policy-badge"><span class="dot"></span><span id="policy-label">' + ($('policy').selectedOptions[0].text) + '</span></span>';
+  EXPERT_IDS.forEach(e => setStatus(e, 'Waiting for a request…'));
+  log.innerHTML = '';
+  $('brief').innerHTML = '<span class="tag">No brief yet. Watch the office.</span>';
+  $('stat-step').textContent = '0';
+  $('stat-cum').textContent = '0.00';
+  $('stat-term').textContent = '—';
+  $('stat-term').classList.remove('good','bad');
+  $('bar-progress').style.width = '0%';
+  $('bar-term').style.width = '0%';
+}
+
+function logLine(html, cls='') {
+  const div = document.createElement('div');
+  div.className = 'line ' + cls;
+  div.innerHTML = html;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function deskCenter(id) {
+  const desk = document.querySelector(`.desk[data-id="${id}"]`);
+  const fr = floor.getBoundingClientRect();
+  const r = desk.getBoundingClientRect();
+  const cx = (r.left + r.right) / 2 - fr.left;
+  const cy = (r.top + r.bottom) / 2 - fr.top;
+  // viewBox is 1000x600 so scale to it
+  return { x: (cx / fr.width) * 1000, y: (cy / fr.height) * 600, raw: { cx, cy } };
+}
+
+function drawStaticWires() {
+  wires.innerHTML = '';
+  const cos = deskCenter('cos');
+  ['ceo','analyst','finance','strategy','hr'].forEach(id => {
+    const p = deskCenter(id);
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    const c1x = cos.x, c1y = (cos.y + p.y)/2;
+    path.setAttribute('d', `M ${cos.x} ${cos.y} Q ${c1x} ${c1y} ${p.x} ${p.y}`);
+    path.setAttribute('class','wire');
+    path.setAttribute('data-to', id);
+    wires.appendChild(path);
+  });
+}
+
+async function animateMessage(toId, text) {
+  const paths = wires.querySelectorAll('path.wire');
+  paths.forEach(p => p.classList.toggle('active', p.getAttribute('data-to') === toId));
+  // moving pulse along a straight line approximation
+  const cos = deskCenter('cos');
+  const tgt = deskCenter(toId);
+  const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dot.setAttribute('class','pulse');
+  dot.setAttribute('cx', cos.x);
+  dot.setAttribute('cy', cos.y);
+  wires.appendChild(dot);
+
+  // bubble
+  const fr = floor.getBoundingClientRect();
+  const tgtRaw = deskCenter(toId).raw;
+  bubble.innerHTML = text;
+  bubble.style.left = Math.max(10, tgtRaw.cx - 110) + 'px';
+  bubble.style.top  = Math.max(10, tgtRaw.cy - 70) + 'px';
+  bubble.classList.add('show');
+
+  const steps = 24;
+  for (let i=1;i<=steps;i++) {
+    const t = i/steps;
+    const x = cos.x + (tgt.x - cos.x)*t;
+    const y = cos.y + (tgt.y - cos.y)*t;
+    dot.setAttribute('cx', x);
+    dot.setAttribute('cy', y);
+    await sleep(14);
+  }
+  dot.remove();
+}
+
+function hideBubble() {
+  bubble.classList.remove('show');
+  wires.querySelectorAll('path.wire').forEach(p => p.classList.remove('active'));
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function fmtReward(r) {
+  const s = (r >= 0 ? '+' : '') + r.toFixed(2);
+  return s;
+}
+
+function describeAction(a) {
+  if (a.action_type === 'consult' || a.action_type === 'ask') {
+    return `${ACTION_EMOJI[a.action_type]} ${a.action_type} → ${a.expert_id}`;
+  }
+  return `${ACTION_EMOJI[a.action_type] || '•'} ${a.action_type}`;
+}
+
+function renderReportChip(report) {
+  if (!report) return '';
+  const pills = [];
+  if (report.metrics && typeof report.metrics === 'object') {
+    const keys = Object.keys(report.metrics).slice(0, 2);
+    for (const k of keys) {
+      const v = report.metrics[k];
+      const s = (typeof v === 'number') ? (Number.isInteger(v) ? v : v.toFixed(2)) : String(v).slice(0, 14);
+      pills.push(`<span class="chip">${k}=${s}</span>`);
+    }
+  }
+  return pills.join(' ');
+}
+
+function renderBrief(data) {
+  const brief = data.final_brief;
+  const root = $('brief');
+  if (!brief) { root.innerHTML = '<span class="tag">No brief yet.</span>'; return; }
+  const metrics = brief.metrics || {};
+  const mHtml = Object.keys(metrics).slice(0, 6).map(k => {
+    const v = metrics[k];
+    const s = (typeof v === 'number') ? (Number.isInteger(v) ? v : v.toFixed(2)) : String(v).slice(0, 32);
+    return `<div class="kv"><span class="k">${k}</span><span>${s}</span></div>`;
+  }).join('');
+  const recs = (brief.recommendations || []).map(x => `<li>${x}</li>`).join('');
+  const memo = brief.hr_memo ? `<div style="margin-top:8px;"><div class="tag">HR memo</div><pre>${brief.hr_memo}</pre></div>` : '';
+  root.innerHTML = `
+    <div>${brief.summary || ''}</div>
+    ${mHtml ? `<div style="margin-top:8px;">${mHtml}</div>` : ''}
+    ${recs ? `<div style="margin-top:8px;"><div class="tag">Recommendations</div><ul>${recs}</ul></div>` : ''}
+    ${memo}
+    <div style="margin-top:10px; font-size:11px; color:var(--muted);">Consulted: ${(brief.consulted_experts || []).join(', ') || '—'}</div>
+  `;
+}
+
+async function runEpisode() {
+  if (runLock) return;
+  runLock = true;
+  $('run').disabled = true;
+  clearFloor();
+  const task = $('task').value;
+  const policy = $('policy').value;
+  const speed = parseInt($('speed').value, 10);
+
+  let data;
+  try {
+    const res = await fetch('/visualize/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ task, policy })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (e) {
+    logLine(`<span class="ts">!</span>failed to run: ${e}`, 'end');
+    runLock = false; $('run').disabled = false;
+    return;
+  }
+
+  $('instruction').textContent = data.instruction + `  ·  policy: ${data.policy_label}`;
+  setStatus('ceo', 'Briefed Chief of Staff. Watching…');
+  logLine(`<span class="ts">[START]</span> task=${data.task} policy=${data.policy_label} max_steps=${data.max_steps}`, 'step');
+
+  for (const step of data.steps) {
+    $('stat-step').textContent = step.step;
+    $('stat-cum').textContent = step.cumulative_reward.toFixed(2);
+    $('bar-progress').style.width = Math.min(100, (step.step / data.max_steps) * 100) + '%';
+
+    const a = step.action;
+    const actTxt = describeAction(a);
+    const rwdCls = step.reward >= 0 ? 'pos' : 'neg';
+    logLine(`<span class="ts">[STEP ${String(step.step).padStart(2,'0')}]</span> ${actTxt}  <span class="reward ${rwdCls}">reward ${fmtReward(step.reward)}</span>`, 'step');
+
+    setStatus('cos', `Issuing: <b>${actTxt}</b>`, 'active');
+
+    if ((a.action_type === 'consult' || a.action_type === 'ask') && a.expert_id) {
+      const exp = a.expert_id;
+      setStatus(exp, `Receiving ${a.action_type}…`, 'active');
+      await animateMessage(exp, `<div class="tiny">CoS → ${exp}</div>${a.action_type} ${a.sub_question_id ? '· '+a.sub_question_id : ''}`);
+      await sleep(speed * 0.3);
+      const report = step.latest_report;
+      if (report) {
+        const chips = renderReportChip(report);
+        setStatus(exp, `<b>${report.title || 'Report ready'}</b> ${chips}`, 'done');
+      } else {
+        setStatus(exp, 'Already consulted (redundant).', 'done');
+      }
+      hideBubble();
+    } else if (a.action_type === 'summarize') {
+      setStatus('cos', 'Composing brief from expert reports…', 'active');
+      await sleep(speed * 0.6);
+    } else if (a.action_type === 'submit') {
+      setStatus('cos', 'Submitting brief to CEO…', 'active');
+      await sleep(speed * 0.6);
+      setStatus('ceo', 'Received brief ✔︎', 'done');
+    } else {
+      await sleep(speed * 0.3);
+    }
+    await sleep(speed * 0.45);
+  }
+
+  // terminal
+  $('stat-term').textContent = data.terminal_score.toFixed(3);
+  $('stat-term').classList.add(data.success ? 'good' : 'bad');
+  $('bar-term').style.width = Math.min(100, data.terminal_score * 100) + '%';
+  const verdict = data.success ? 'SUCCESS' : 'BELOW THRESHOLD';
+  logLine(`<span class="ts">[END]</span> terminal=${data.terminal_score.toFixed(3)} · ${verdict}`, 'end');
+  setStatus('cos', `Done. Terminal score <b>${data.terminal_score.toFixed(3)}</b>`, data.success ? 'done' : 'active');
+  renderBrief(data);
+
+  runLock = false;
+  $('run').disabled = false;
+}
+
+// wiring
+window.addEventListener('load', () => {
+  drawStaticWires();
+  $('run').addEventListener('click', runEpisode);
+  $('reset').addEventListener('click', clearFloor);
+  window.addEventListener('resize', drawStaticWires);
+});
+</script>
+
+</body>
+</html>

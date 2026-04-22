@@ -1,0 +1,21 @@
+{
+  "title": "Category growth and Q4 forecast",
+  "difficulty": "medium",
+  "max_steps": 10,
+  "instruction": "Which category drove Q3 growth, what is the Q4 forecast plus variance versus plan, what should we do about it, and send the leads a heads-up.",
+  "required_experts": [
+    "analyst",
+    "finance",
+    "strategy",
+    "hr"
+  ],
+  "memo_audience": "department leads",
+  "hr_required_terms": [
+    "forecast",
+    "variance",
+    "leads"
+  ],
+  "plan_value": 42000,
+  "fixed_cost": 18000,
+  "unit_margin": 1200
+}

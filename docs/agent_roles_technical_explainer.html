@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>AutoDataLab++ Agent Roles Technical Explainer</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">AutoDataLab++ Agent Roles Technical Explainer</h1>
+</header>
+<h1 id="autodatalab-technical-role-explainer">AutoDataLab++: Technical Role Explainer</h1>
+<h2 id="system-roles">System Roles</h2>
+<p>In the current implementation, there are six roles in the office:</p>
+<ul>
+<li>CEO</li>
+<li>Chief of Staff (CoS)</li>
+<li>Data Analyst</li>
+<li>Finance</li>
+<li>Strategy</li>
+<li>HR / Communications</li>
+</ul>
+<p>Technically, the contract between these roles is defined by the typed schemas in <code>ceo_brief_env/models.py</code>. The key objects are:</p>
+<ul>
+<li><code>CoSAction</code>: what the CoS is allowed to do</li>
+<li><code>ExpertReport</code>: the standard structured output from each specialist</li>
+<li><code>Brief</code>: the final merged executive deliverable</li>
+<li><code>CoSObservation</code>: the state the CoS sees after each step</li>
+</ul>
+<p>This means the system is not just a set of chat agents. It is a typed orchestration system where specialist outputs feed a shared executive workflow.</p>
+<h2 id="ceo">CEO</h2>
+<p>The CEO is not currently implemented as an autonomous model in code. Instead, the CEO is represented by:</p>
+<ul>
+<li>the task instruction in the observation</li>
+<li>the task metadata</li>
+<li>the final expectation that the system should produce a decision-ready brief</li>
+</ul>
+<p>Conceptually, the CEO is responsible for:</p>
+<ol type="1">
+<li>Defining the business problem</li>
+<li>Setting the decision context</li>
+<li>Establishing what a good answer should contain</li>
+<li>Consuming the final brief</li>
+</ol>
+<p>The CEO does not perform analysis directly. The CEO acts as the principal who defines the objective and expects a high-level synthesis.</p>
+<h2 id="chief-of-staff-cos">Chief of Staff (CoS)</h2>
+<p>The Chief of Staff is the central control policy and the only trainable policy in the environment.</p>
+<p>Its action interface supports:</p>
+<ul>
+<li><code>consult</code></li>
+<li><code>ask</code></li>
+<li><code>summarize</code></li>
+<li><code>submit</code></li>
+<li><code>noop</code></li>
+</ul>
+<p>and it can route these actions to:</p>
+<ul>
+<li><code>analyst</code></li>
+<li><code>finance</code></li>
+<li><code>hr</code></li>
+<li><code>strategy</code></li>
+</ul>
+<h3 id="technical-responsibilities">Technical Responsibilities</h3>
+<p>The CoS solves the workflow-routing problem:</p>
+<ul>
+<li>which expert to invoke</li>
+<li>in what sequence to invoke them</li>
+<li>whether to re-query an expert</li>
+<li>when enough information exists to summarize</li>
+<li>when to submit the final brief</li>
+</ul>
+<p>The CoS does not compute business metrics itself. It coordinates specialists and is rewarded for good orchestration.</p>
+<h2 id="data-analyst-agent">Data Analyst Agent</h2>
+<p>The Data Analyst is implemented in <code>ceo_brief_env/experts/data_analyst.py</code>.</p>
+<h3 id="inputs">Inputs</h3>
+<ul>
+<li><code>task_name</code></li>
+<li><code>question</code></li>
+<li><code>raw_df</code></li>
+<li><code>focused</code></li>
+</ul>
+<h3 id="core-functions-used">Core Functions Used</h3>
+<p>The Analyst relies on the data-processing substrate in <code>subenvs/autodatalab.analytics</code>:</p>
+<ul>
+<li><code>clean_orders()</code></li>
+<li><code>derive_revenue()</code></li>
+<li><code>compute_kpis()</code></li>
+<li><code>compute_revenue_share()</code></li>
+<li><code>validate_schema()</code></li>
+<li><code>data_quality_score()</code></li>
+</ul>
+<h3 id="technical-responsibilities-1">Technical Responsibilities</h3>
+<p>The Analyst is the data integrity and descriptive analytics layer. It is responsible for:</p>
+<ol type="1">
+<li>Cleaning and normalizing raw order data</li>
+<li>Measuring data quality</li>
+<li>Producing core KPIs</li>
+<li>Identifying leading revenue categories</li>
+<li>Surfacing schema and quality risks</li>
+</ol>
+<h3 id="output-shape">Output Shape</h3>
+<p>The Analyst returns an <code>ExpertReport</code> containing:</p>
+<ul>
+<li>summary text</li>
+<li>metrics such as total revenue, average order value, top category, and top-category revenue</li>
+<li>data-quality indicators</li>
+<li>issues and citations</li>
+</ul>
+<h3 id="system-role">System Role</h3>
+<p>The Analyst is the evidence foundation for the system. Finance, Strategy, and HR all depend on the quality of this upstream output.</p>
+<h2 id="finance-agent">Finance Agent</h2>
+<p>Finance is implemented in <code>ceo_brief_env/experts/finance.py</code>.</p>
+<h3 id="inputs-1">Inputs</h3>
+<ul>
+<li><code>task_name</code></li>
+<li><code>question</code></li>
+<li><code>raw_df</code></li>
+<li><code>analyst_metrics</code></li>
+<li><code>task_meta</code></li>
+<li><code>focused</code></li>
+</ul>
+<h3 id="core-functions-used-1">Core Functions Used</h3>
+<p>Finance uses:</p>
+<ul>
+<li><code>clean_orders()</code></li>
+<li><code>monthly_revenue()</code></li>
+</ul>
+<p>and deterministic finance tools:</p>
+<ul>
+<li><code>project_next_quarter()</code></li>
+<li><code>compute_variance()</code></li>
+<li><code>break_even()</code></li>
+</ul>
+<h3 id="technical-responsibilities-2">Technical Responsibilities</h3>
+<p>Finance is the forward-looking quantitative reasoning layer. It is responsible for:</p>
+<ol type="1">
+<li>Turning cleaned transaction data into monthly revenue structure</li>
+<li>Forecasting next-quarter revenue</li>
+<li>Comparing actual performance against plan</li>
+<li>Computing break-even thresholds</li>
+</ol>
+<h3 id="output-shape-1">Output Shape</h3>
+<p>The Finance <code>ExpertReport</code> contains metrics such as:</p>
+<ul>
+<li><code>projection_next_quarter</code></li>
+<li><code>confidence_band</code></li>
+<li><code>variance_abs</code></li>
+<li><code>variance_pct</code></li>
+<li><code>variance_flag</code></li>
+<li><code>break_even_units</code></li>
+</ul>
+<h3 id="system-role-1">System Role</h3>
+<p>Finance converts descriptive analytics into planning and control signals. It answers not only what happened, but what it means for near-term business execution.</p>
+<h2 id="strategy-agent">Strategy Agent</h2>
+<p>Strategy is implemented in <code>ceo_brief_env/experts/strategy.py</code>.</p>
+<h3 id="inputs-2">Inputs</h3>
+<ul>
+<li><code>task_name</code></li>
+<li><code>task_meta</code></li>
+<li><code>analyst_report</code></li>
+<li><code>finance_report</code></li>
+<li><code>focused</code></li>
+</ul>
+<h3 id="technical-responsibilities-3">Technical Responsibilities</h3>
+<p>Strategy is the decision-synthesis layer. It reads the outputs of Analyst and Finance, then converts them into executive recommendations.</p>
+<p>In the current implementation it pulls signals such as:</p>
+<ul>
+<li><code>top_category</code></li>
+<li><code>total_revenue</code></li>
+<li><code>projection_next_quarter</code></li>
+<li><code>variance_pct</code></li>
+</ul>
+<p>and transforms them into a three-bullet operating plan.</p>
+<h3 id="output-shape-2">Output Shape</h3>
+<p>The Strategy <code>ExpertReport</code> contains:</p>
+<ul>
+<li>a short strategic summary</li>
+<li>recommendation count</li>
+<li>recommendation bullets</li>
+<li>citations to upstream findings</li>
+</ul>
+<h3 id="system-role-2">System Role</h3>
+<p>Strategy is where the system moves from analysis to action. It is the layer that translates numbers into managerial priorities.</p>
+<h2 id="hr-communications-agent">HR / Communications Agent</h2>
+<p>HR is implemented in <code>ceo_brief_env/experts/hr.py</code>.</p>
+<h3 id="inputs-3">Inputs</h3>
+<ul>
+<li><code>task_name</code></li>
+<li><code>task_meta</code></li>
+<li><code>analyst_report</code></li>
+<li><code>finance_report</code></li>
+<li>optional <code>strategy_report</code></li>
+<li><code>focused</code></li>
+</ul>
+<h3 id="core-functions-used-2">Core Functions Used</h3>
+<p>HR uses the communications substrate in <code>subenvs/email/hr_tools</code>:</p>
+<ul>
+<li><code>build_hr_memo()</code></li>
+<li><code>score_memo()</code></li>
+</ul>
+<h3 id="technical-responsibilities-4">Technical Responsibilities</h3>
+<p>HR is the stakeholder communication layer. It is responsible for:</p>
+<ol type="1">
+<li>Collecting the most important highlights from upstream experts</li>
+<li>Translating them into an internal memo for the intended audience</li>
+<li>Scoring the memo against required terms and communication expectations</li>
+</ol>
+<h3 id="output-shape-3">Output Shape</h3>
+<p>The HR <code>ExpertReport</code> contains:</p>
+<ul>
+<li>memo summary</li>
+<li><code>memo_score</code></li>
+<li>the full memo text</li>
+<li>a communication-oriented output ready for inclusion in the final brief</li>
+</ul>
+<h3 id="system-role-3">System Role</h3>
+<p>HR makes the environment more realistic by forcing the system not only to reason correctly, but also to communicate conclusions appropriately inside an organization.</p>
+<h2 id="how-agent-dependencies-work">How Agent Dependencies Work</h2>
+<p>The dependencies are encoded in <code>ceo_brief_env/environment.py</code>:</p>
+<ul>
+<li>Finance can bootstrap Analyst output if Analyst has not yet been run</li>
+<li>Strategy depends on Analyst and Finance</li>
+<li>HR depends on Analyst and Finance, and optionally Strategy</li>
+</ul>
+<p>This creates a partially ordered workflow rather than a flat set of independent tools.</p>
+<h2 id="how-the-final-brief-is-built">How the Final Brief Is Built</h2>
+<p>The final brief is assembled from specialist outputs:</p>
+<ul>
+<li>metrics are merged from Analyst and Finance</li>
+<li>recommendations come from Strategy</li>
+<li>the stakeholder memo comes from HR</li>
+<li>the final summary concatenates upstream report summaries</li>
+</ul>
+<p>The final <code>Brief</code> therefore acts as a composed executive artifact rather than a single-model response.</p>
+<h2 id="what-each-role-optimizes-for">What Each Role Optimizes For</h2>
+<h3 id="ceo-1">CEO</h3>
+<ul>
+<li>decision usefulness</li>
+<li>executive clarity</li>
+<li>completeness of the final brief</li>
+</ul>
+<h3 id="chief-of-staff">Chief of Staff</h3>
+<ul>
+<li>efficient expert routing</li>
+<li>low redundancy</li>
+<li>strong terminal brief quality</li>
+</ul>
+<h3 id="data-analyst">Data Analyst</h3>
+<ul>
+<li>trustworthy descriptive evidence</li>
+<li>data quality awareness</li>
+<li>KPI grounding</li>
+</ul>
+<h3 id="finance">Finance</h3>
+<ul>
+<li>forecasting quality</li>
+<li>plan-versus-actual control</li>
+<li>break-even reasoning</li>
+</ul>
+<h3 id="strategy">Strategy</h3>
+<ul>
+<li>actionability</li>
+<li>prioritization</li>
+<li>converting evidence into decisions</li>
+</ul>
+<h3 id="hr-communications">HR / Communications</h3>
+<ul>
+<li>stakeholder readability</li>
+<li>memo quality</li>
+<li>organizational communication readiness</li>
+</ul>
+<h2 id="main-technical-insight">Main Technical Insight</h2>
+<p>This system should not be understood as five chatbots talking. It is better understood as a layered enterprise decision stack:</p>
+<ul>
+<li>Analyst establishes evidence</li>
+<li>Finance projects implications</li>
+<li>Strategy turns findings into action</li>
+<li>HR packages action for people</li>
+<li>CoS learns how to coordinate the workflow</li>
+<li>CEO defines the objective and consumes the final deliverable</li>
+</ul>
+<p>That decomposition is what makes the environment useful for reinforcement learning. The hard problem is not isolated expert reasoning. The hard problem is structured multi-role orchestration under delayed reward.</p>
+</body>
+</html>

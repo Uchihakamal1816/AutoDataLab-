@@ -1,0 +1,11 @@
+OrderID,CustomerID,ExpiryDays,Product,Category,Price,Quantity,OrderDate
+301,C020,45,Camera,Electronics,42500,1,2024-01-06
+302,C021,30,Moisturiser,Beauty,720,2,2024-01-20
+303,C022,90,Sofa,Home,18800,1,2024-02-10
+304,C023,75,Racket,Sports,1820,2,2024-02-14
+305,C024,60,Laptop,Electronics,61500,1,2024-03-09
+306,C025,30,Jeans,Fashion,1490,3,2024-03-20
+307,C026,30,Phone,Electronics,,1,2024-04-15
+308,C027,365,Yoga Mat,Sports,840,2,2024-04-25
+309,C028,120,Lamp,Home,910,3,2024-05-01
+309,C028,120,Lamp,Home,910,3,2024-05-01

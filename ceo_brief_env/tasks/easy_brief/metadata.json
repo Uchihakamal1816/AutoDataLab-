@@ -1,0 +1,20 @@
+{
+  "title": "Revenue sanity check",
+  "difficulty": "easy",
+  "max_steps": 8,
+  "instruction": "Is our raw sales file trustworthy, what's next quarter's revenue looking like, and send the team a one-paragraph update.",
+  "required_experts": [
+    "analyst",
+    "finance",
+    "hr"
+  ],
+  "memo_audience": "team",
+  "hr_required_terms": [
+    "revenue",
+    "projection",
+    "team"
+  ],
+  "plan_value": 26000,
+  "fixed_cost": 12000,
+  "unit_margin": 850
+}

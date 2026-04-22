@@ -1,0 +1,35 @@
+spec_version: 1
+name: autodatalab_plus
+type: space
+runtime: fastapi
+app: server.app:app
+port: 7860
+
+description: >
+  Multi-agent company simulation where a trainable Chief of Staff routes work
+  across Data Analyst, Finance, HR, and Strategy specialists to solve
+  realistic business briefing tasks.
+
+tags:
+  - openenv
+  - multi-agent
+  - enterprise
+  - reinforcement-learning
+  - orchestration
+
+tasks:
+  - id: easy_brief
+    difficulty: easy
+    summary: >
+      Revenue sanity check: trust the raw sales file, estimate next-quarter
+      revenue, and send the team an internal update.
+  - id: medium_brief
+    difficulty: medium
+    summary: >
+      Identify the growth-driving category, forecast next-quarter revenue,
+      recommend action, and communicate to department leads.
+  - id: hard_brief
+    difficulty: hard
+    summary: >
+      Produce a board-style summary with risk flags, forecast, strategy, and a
+      CFO-facing memo.

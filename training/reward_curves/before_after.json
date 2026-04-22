@@ -1,0 +1,35 @@
+{
+  "episodes": 600,
+  "lr": 0.003,
+  "before": {
+    "easy_brief": {
+      "mean_terminal": 0.6135,
+      "mean_cumulative": 0.6595
+    },
+    "medium_brief": {
+      "mean_terminal": 0.605,
+      "mean_cumulative": 0.641
+    },
+    "hard_brief": {
+      "mean_terminal": 0.3906,
+      "mean_cumulative": 0.4546
+    }
+  },
+  "after": {
+    "easy_brief": {
+      "mean_terminal": 0.907,
+      "mean_cumulative": 1.181
+    },
+    "medium_brief": {
+      "mean_terminal": 0.816,
+      "mean_cumulative": 1.224
+    },
+    "hard_brief": {
+      "mean_terminal": 0.7812,
+      "mean_cumulative": 1.2172
+    }
+  },
+  "mean_terminal_before": 0.5364,
+  "mean_terminal_after": 0.8347,
+  "curve_path": "training/reward_curves/reward_curve.png"
+}

@@ -1,0 +1,9 @@
+OrderID,CustomerID,ExpiryDays,Product,Category,Price,Quantity,OrderDate
+101,C001,25,Perfume,Beauty,,3,2024-01-05
+102,C002,45,Headphones,Electronics,2950,2,2024-01-12
+103,C003,60,Jeans,Fashion,1580,1,2024-02-02
+103,C003,60,Jeans,Fashion,1580,1,2024-02-02
+104,C004,90,Lamp,Home,870,2,2024-02-14
+105,C005,120,Racket,Sports,1730,1,2024-03-03
+106,C006,75,Phone,Electronics,28810,1,2024-03-10
+107,C007,30,Moisturiser,Beauty,650,2,2024-03-18

@@ -1,0 +1,10 @@
+OrderID,CustomerID,ExpiryDays,Product,Category,Price,Quantity,OrderDate
+201,C010,30,Serum,Beauty,1250,2,2024-01-04
+202,C011,45,Headphones,Electronics,3100,2,2024-01-11
+203,C012,90,Shoes,Fashion,2050,2,2024-02-08
+204,C013,60,Rug,Home,2300,1,2024-02-18
+205,C014,75,Cycle,Sports,14500,1,2024-03-05
+206,C015,75,Phone,Electronics,30100,1,2024-03-17
+207,C016,30,Tablet,Electronics,,1,2024-04-03
+208,C017,60,Perfume,Beauty,2400,2,2024-04-12
+208,C017,60,Perfume,Beauty,2400,2,2024-04-12

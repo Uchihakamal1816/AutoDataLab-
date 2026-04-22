@@ -1,0 +1,225 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from uuid import uuid4
+
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_observation
+from ceo_brief_env.models import CoSAction, CoSObservation
+
+app = FastAPI(title='AutoDataLab++', version='0.1.0')
+SESSIONS: Dict[str, CEOBriefEnvironment] = {}
+
+STATIC_DIR = Path(__file__).resolve().parent / 'static'
+STATIC_DIR.mkdir(exist_ok=True)
+app.mount('/ui', StaticFiles(directory=str(STATIC_DIR), html=True), name='ui')
+
+
+class ResetRequest(BaseModel):
+    task: str = 'easy_brief'
+
+
+class StepRequest(BaseModel):
+    episode_id: str
+    action: CoSAction
+
+
+class VisualizeRequest(BaseModel):
+    task: str = 'easy_brief'
+    policy: str = 'trained'
+
+
+@app.get('/')
+def root() -> dict[str, str]:
+    return {'status': 'ok', 'name': 'autodatalab_plus', 'ui': '/ui/'}
+
+
+@app.get('/health')
+def health() -> dict[str, str]:
+    return {'status': 'healthy'}
+
+
+@app.get('/tasks')
+def tasks() -> dict[str, list[str]]:
+    return {'tasks': ['easy_brief', 'medium_brief', 'hard_brief']}
+
+
+@app.post('/reset')
+def reset(req: ResetRequest) -> dict:
+    env = CEOBriefEnvironment()
+    episode_id = str(uuid4())
+    obs = env.reset(task=req.task, episode_id=episode_id)
+    SESSIONS[episode_id] = env
+    payload = obs.model_dump()
+    payload['episode_id'] = episode_id
+    return payload
+
+
+@app.post('/step')
+def step(req: StepRequest) -> dict:
+    env = SESSIONS.get(req.episode_id)
+    if env is None:
+        raise HTTPException(status_code=404, detail='unknown episode_id')
+    obs = env.step(req.action)
+    payload = obs.model_dump()
+    payload['episode_id'] = req.episode_id
+    return payload
+
+
+@app.get('/state')
+def state(episode_id: str) -> dict:
+    env = SESSIONS.get(episode_id)
+    if env is None:
+        raise HTTPException(status_code=404, detail='unknown episode_id')
+    return env.state().model_dump()
+
+
+# ---------------------------------------------------------------------------
+# Visualization support
+# ---------------------------------------------------------------------------
+
+def _single_baseline(obs: CoSObservation) -> CoSAction:
+    if 'analyst' not in obs.consulted_experts:
+        return CoSAction(action_type='consult', expert_id='analyst')
+    if 'hr' not in obs.consulted_experts:
+        return CoSAction(action_type='consult', expert_id='hr')
+    if obs.current_brief is None:
+        return CoSAction(action_type='summarize')
+    return CoSAction(action_type='submit')
+
+
+def _roundrobin_baseline(obs: CoSObservation) -> CoSAction:
+    for expert in ['analyst', 'finance', 'strategy', 'hr']:
+        if expert not in obs.consulted_experts:
+            return CoSAction(action_type='consult', expert_id=expert)
+    if obs.current_brief is None:
+        return CoSAction(action_type='summarize')
+    return CoSAction(action_type='submit')
+
+
+def _trained_picker(obs: CoSObservation) -> CoSAction:
+    # Lazy import so the server still works if torch/training pkg is missing.
+    from training.train_cos_local import ACTIONS, PolicyNet, featurize
+    import torch
+
+    model = _trained_picker._model  # type: ignore[attr-defined]
+    if model is None:
+        ckpt = REPO_ROOT / 'training' / 'checkpoints' / 'cos_final.pt'
+        if not ckpt.exists():
+            ckpt = REPO_ROOT / 'training' / 'checkpoints' / 'cos_ckpt0.pt'
+        model = PolicyNet()
+        if ckpt.exists():
+            model.load_state_dict(torch.load(ckpt, map_location='cpu'))
+        model.eval()
+        _trained_picker._model = model  # type: ignore[attr-defined]
+    feats = torch.from_numpy(featurize(obs)).unsqueeze(0)
+    with torch.no_grad():
+        logits = model(feats)
+    idx = int(torch.argmax(logits, dim=-1).item())
+    return ACTIONS[idx]
+
+
+_trained_picker._model = None  # type: ignore[attr-defined]
+
+
+def _pick_policy(name: str):
+    name = (name or 'trained').lower()
+    if name == 'oracle':
+        return oracle_action_for_observation, 'oracle'
+    if name == 'single':
+        return _single_baseline, 'single-baseline'
+    if name == 'roundrobin':
+        return _roundrobin_baseline, 'roundrobin-baseline'
+    if name == 'trained':
+        return _trained_picker, 'trained-cos'
+    raise HTTPException(status_code=400, detail=f'unknown policy {name!r}')
+
+
+def _serialize_report(report) -> Optional[dict]:
+    if report is None:
+        return None
+    return report.model_dump()
+
+
+@app.get('/visualize/task_meta')
+def task_meta(task: str = 'easy_brief') -> dict:
+    task_dir = REPO_ROOT / 'ceo_brief_env' / 'tasks' / task
+    if not task_dir.exists():
+        raise HTTPException(status_code=404, detail=f'unknown task {task!r}')
+    import json as _json
+    meta = _json.loads((task_dir / 'metadata.json').read_text())
+    return {'task': task, 'metadata': meta}
+
+
+@app.post('/visualize/run')
+def visualize_run(req: VisualizeRequest) -> dict:
+    picker, label = _pick_policy(req.policy)
+    env = CEOBriefEnvironment()
+    obs = env.reset(task=req.task)
+    instruction = obs.instruction
+    max_steps = obs.max_steps
+
+    trace: List[dict] = []
+    prior_consulted: set = set()
+    cumulative = 0.0
+    step_no = 0
+    done = False
+    while not done and step_no < max_steps:
+        step_no += 1
+        action = picker(obs)
+        obs = env.step(action)
+        cumulative = float(obs.reward_breakdown.cumulative if obs.reward_breakdown else cumulative + obs.reward)
+        new_experts = [e for e in obs.consulted_experts if e not in prior_consulted]
+        prior_consulted = set(obs.consulted_experts)
+        latest_report = None
+        if new_experts:
+            latest_report = _serialize_report(obs.expert_reports.get(new_experts[-1]))
+        elif action.expert_id and action.expert_id in obs.expert_reports:
+            latest_report = _serialize_report(obs.expert_reports[action.expert_id])
+        trace.append({
+            'step': step_no,
+            'action': action.model_dump(exclude_none=True),
+            'reward': float(obs.reward),
+            'cumulative_reward': round(cumulative, 4),
+            'done': bool(obs.done),
+            'consulted_experts': list(obs.consulted_experts),
+            'new_expert': new_experts[-1] if new_experts else None,
+            'issues': list(obs.issues),
+            'data_quality_score': float(obs.data_quality_score or 0.0),
+            'latest_report': latest_report,
+        })
+        done = bool(obs.done)
+
+    final_brief = obs.current_brief.model_dump() if obs.current_brief else None
+    terminal_score = float(obs.terminal_grader_score or 0.0)
+    return {
+        'task': req.task,
+        'policy': req.policy,
+        'policy_label': label,
+        'instruction': instruction,
+        'max_steps': max_steps,
+        'steps': trace,
+        'final_brief': final_brief,
+        'expert_reports': {k: _serialize_report(v) for k, v in obs.expert_reports.items()},
+        'terminal_score': round(max(0.001, min(0.999, terminal_score)), 4),
+        'success': terminal_score >= 0.5,
+    }
+
+
+def main(host: str = '0.0.0.0', port: int = 7860):
+    uvicorn.run('server.app:app', host=host, port=port, reload=False)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autodatalab-plus"
+version = "0.1.0"
+description = "AutoDataLab++ multi-agent company simulation for OpenEnv"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.7.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "openai>=1.30.0",
+    "python-dotenv>=1.0.1",
+    "openenv-core[core]>=0.2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+]
+
+[project.scripts]
+server = "server.app:main"
+autodatalab-plus-server = "server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = [
+    "ceo_brief_env",
+    "ceo_brief_env.experts",
+    "subenvs",
+    "subenvs.autodatalab",
+    "subenvs.email",
+    "server",
+]
+
+[tool.setuptools.package-data]
+ceo_brief_env = ["tasks/**/*.csv", "tasks/**/*.json"]

@@ -1,0 +1,38 @@
+/home/uchihakamal/.local/lib/python3.10/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+[START] local REINFORCE training | episodes=600 | lr=0.003
+[EVAL] before: {"easy_brief": {"mean_terminal": 0.6135, "mean_cumulative": 0.6595}, "medium_brief": {"mean_terminal": 0.605, "mean_cumulative": 0.641}, "hard_brief": {"mean_terminal": 0.3906, "mean_cumulative": 0.4546}}
+[STEP] ep=0001 task=medium_brief steps=10 ep_reward=+0.873 terminal=0.853 ma20=+0.873
+[STEP] ep=0020 task=hard_brief steps=12 ep_reward=+0.514 terminal=0.454 ma20=+0.627
+[STEP] ep=0040 task=medium_brief steps=10 ep_reward=+0.953 terminal=0.853 ma20=+0.592
+[STEP] ep=0060 task=easy_brief steps=6 ep_reward=+1.107 terminal=0.907 ma20=+0.499
+[STEP] ep=0080 task=hard_brief steps=12 ep_reward=+0.854 terminal=0.794 ma20=+0.652
+[STEP] ep=0100 task=medium_brief steps=4 ep_reward=+0.549 terminal=0.389 ma20=+0.600
+[STEP] ep=0120 task=easy_brief steps=8 ep_reward=+1.227 terminal=0.907 ma20=+0.827
+[STEP] ep=0140 task=hard_brief steps=12 ep_reward=+0.509 terminal=0.579 ma20=+0.809
+[STEP] ep=0160 task=medium_brief steps=10 ep_reward=+0.909 terminal=0.729 ma20=+0.868
+[STEP] ep=0180 task=easy_brief steps=8 ep_reward=+1.037 terminal=0.907 ma20=+0.984
+[STEP] ep=0200 task=hard_brief steps=12 ep_reward=+1.044 terminal=0.844 ma20=+0.846
+[STEP] ep=0220 task=medium_brief steps=2 ep_reward=+0.325 terminal=0.265 ma20=+0.915
+[STEP] ep=0240 task=easy_brief steps=8 ep_reward=+1.227 terminal=0.907 ma20=+1.130
+[STEP] ep=0260 task=hard_brief steps=3 ep_reward=+0.594 terminal=0.454 ma20=+1.012
+[STEP] ep=0280 task=medium_brief steps=10 ep_reward=+0.969 terminal=0.729 ma20=+1.145
+[STEP] ep=0300 task=easy_brief steps=8 ep_reward=+1.247 terminal=0.907 ma20=+1.146
+[STEP] ep=0320 task=hard_brief steps=5 ep_reward=+0.959 terminal=0.719 ma20=+1.121
+[STEP] ep=0340 task=medium_brief steps=10 ep_reward=+0.893 terminal=0.803 ma20=+1.136
+[STEP] ep=0360 task=easy_brief steps=8 ep_reward=+0.947 terminal=0.907 ma20=+0.971
+[STEP] ep=0380 task=hard_brief steps=5 ep_reward=+0.959 terminal=0.719 ma20=+1.086
+[STEP] ep=0400 task=medium_brief steps=10 ep_reward=+0.969 terminal=0.729 ma20=+1.075
+[STEP] ep=0420 task=easy_brief steps=8 ep_reward=+1.107 terminal=0.907 ma20=+1.062
+[STEP] ep=0440 task=hard_brief steps=12 ep_reward=+1.184 terminal=0.844 ma20=+1.091
+[STEP] ep=0460 task=medium_brief steps=10 ep_reward=+1.223 terminal=0.853 ma20=+1.199
+[STEP] ep=0480 task=easy_brief steps=8 ep_reward=+1.017 terminal=0.907 ma20=+1.034
+[STEP] ep=0500 task=hard_brief steps=12 ep_reward=+1.254 terminal=0.844 ma20=+1.058
+[STEP] ep=0520 task=medium_brief steps=10 ep_reward=+1.153 terminal=0.853 ma20=+1.191
+[STEP] ep=0540 task=easy_brief steps=8 ep_reward=+1.157 terminal=0.907 ma20=+1.197
+[STEP] ep=0560 task=hard_brief steps=12 ep_reward=+0.764 terminal=0.844 ma20=+0.999
+[STEP] ep=0580 task=medium_brief steps=10 ep_reward=+1.253 terminal=0.853 ma20=+1.059
+[STEP] ep=0600 task=easy_brief steps=8 ep_reward=+1.247 terminal=0.907 ma20=+1.133
+[EVAL] after:  {"easy_brief": {"mean_terminal": 0.907, "mean_cumulative": 1.181}, "medium_brief": {"mean_terminal": 0.816, "mean_cumulative": 1.224}, "hard_brief": {"mean_terminal": 0.7812, "mean_cumulative": 1.2172}}
+[END] saved curve=reward_curve.png final_ckpt=cos_final.pt
+[END] before_mean=0.5364 after_mean=0.8347

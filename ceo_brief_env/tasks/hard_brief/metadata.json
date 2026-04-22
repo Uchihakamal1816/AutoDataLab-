@@ -1,0 +1,21 @@
+{
+  "title": "Board-ready summary with risks",
+  "difficulty": "hard",
+  "max_steps": 12,
+  "instruction": "Prepare a board-ready revenue summary with risk flags, Q4 forecast with scenarios, strategic recommendation, and a CFO-facing memo.",
+  "required_experts": [
+    "analyst",
+    "finance",
+    "strategy",
+    "hr"
+  ],
+  "memo_audience": "CFO",
+  "hr_required_terms": [
+    "board",
+    "forecast",
+    "CFO"
+  ],
+  "plan_value": 76000,
+  "fixed_cost": 30000,
+  "unit_margin": 1800
+}

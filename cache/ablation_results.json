@@ -1,0 +1,22 @@
+{
+  "single": {
+    "easy_brief": 0.5618,
+    "medium_brief": 0.4643,
+    "hard_brief": 0.4544
+  },
+  "roundrobin": {
+    "easy_brief": 0.907,
+    "medium_brief": 0.8534,
+    "hard_brief": 0.8436
+  },
+  "oracle_or_llm": {
+    "easy_brief": 0.907,
+    "medium_brief": 0.8534,
+    "hard_brief": 0.8436
+  },
+  "trained_cos": {
+    "easy_brief": 0.907,
+    "medium_brief": 0.7286,
+    "hard_brief": 0.7187
+  }
+}
