@@ -20,16 +20,19 @@ tags:
 tasks:
   - id: easy_brief
     difficulty: easy
+    grader: ceo_brief_env.graders:grade_episode
     summary: >
       Revenue sanity check: trust the raw sales file, estimate next-quarter
       revenue, and send the team an internal update.
   - id: medium_brief
     difficulty: medium
+    grader: ceo_brief_env.graders:grade_episode
     summary: >
       Identify the growth-driving category, forecast next-quarter revenue,
       recommend action, and communicate to department leads.
   - id: hard_brief
     difficulty: hard
+    grader: ceo_brief_env.graders:grade_episode
     summary: >
       Produce a board-style summary with risk flags, forecast, strategy, and a
       CFO-facing memo.

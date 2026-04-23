@@ -15,6 +15,9 @@ API_KEY = os.getenv('API_KEY') or os.getenv('HF_TOKEN') or ''
 BENCHMARK = 'autodatalab_plus'
 TASKS = [t.strip() for t in os.getenv('AUTODATALAB_PLUS_TASKS', 'easy_brief,medium_brief,hard_brief').split(',') if t.strip()]
 
+_LOG_SCORE_MIN = 0.001
+_LOG_SCORE_MAX = 0.999
+
 REPO = Path(__file__).resolve().parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
@@ -31,14 +34,20 @@ def log_start(task: str, env: str, model: str) -> None:
     print(f'[START] task={task} env={env} model={model}', flush=True)
 
 
+def _clamp_log_reward(r: float) -> float:
+    return max(_LOG_SCORE_MIN, min(_LOG_SCORE_MAX, float(r)))
+
+
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
     err = error if error else 'null'
-    print(f'[STEP] step={step} action={action} reward={reward:.2f} done={_bool_str(done)} error={err}', flush=True)
+    r = _clamp_log_reward(reward)
+    print(f'[STEP] step={step} action={action} reward={r:.2f} done={_bool_str(done)} error={err}', flush=True)
 
 
 def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
-    rewards_str = ','.join(f'{r:.2f}' for r in rewards)
-    print(f'[END] success={_bool_str(success)} steps={steps} score={score:.3f} rewards={rewards_str}', flush=True)
+    s = _clamp_log_reward(score)
+    rewards_str = ','.join(f'{_clamp_log_reward(r):.2f}' for r in rewards)
+    print(f'[END] success={_bool_str(success)} steps={steps} score={s:.2f} rewards={rewards_str}', flush=True)
 
 
 def _action_str(action: CoSAction) -> str:
@@ -114,7 +123,12 @@ def _llm_action(obs) -> CoSAction:
     )
     cache_path = _cache_path(obs.task_name, obs.step_count, prompt)
     if cache_path.exists():
-        payload = json.loads(cache_path.read_text(encoding='utf-8'))
+        try:
+            payload = json.loads(cache_path.read_text(encoding='utf-8'))
+        except json.JSONDecodeError:
+            payload = {}
+        if not payload or 'action_type' not in payload:
+            payload = {'action_type': 'noop'}
         return CoSAction.model_validate(payload)
     completion = client.chat.completions.create(
         model=MODEL_NAME,
@@ -124,7 +138,15 @@ def _llm_action(obs) -> CoSAction:
     text = completion.choices[0].message.content or '{}'
     start = text.find('{')
     end = text.rfind('}')
-    payload = json.loads(text[start:end + 1]) if start != -1 and end != -1 else {}
+    if start != -1 and end != -1 and end >= start:
+        try:
+            payload = json.loads(text[start : end + 1])
+        except json.JSONDecodeError:
+            payload = {}
+    else:
+        payload = {}
+    if not payload or 'action_type' not in payload:
+        payload = {'action_type': 'noop'}
     cache_path.write_text(json.dumps(payload, indent=2), encoding='utf-8')
     return CoSAction.model_validate(payload)
 
@@ -149,7 +171,7 @@ def run_episode(task: str, picker: Callable, label: str) -> float:
         success = score >= 0.5
         return score
     except Exception as exc:
-        log_step(max(steps, 1), 'exception', 0.0, True, str(exc).replace('\n', ' '))
+        log_step(max(steps, 1), 'exception', _LOG_SCORE_MIN, True, str(exc).replace('\n', ' '))
         return 0.001
     finally:
         log_end(success, steps, score, rewards)
@@ -187,16 +209,26 @@ def main() -> int:
         results[task] = run_episode(task, picker, label)
 
     if args.ablation:
-        ablations = {
-            'single': {task: run_episode(task, _single_baseline, 'single-baseline') for task in tasks},
-            'roundrobin': {task: run_episode(task, _roundrobin_baseline, 'roundrobin-baseline') for task in tasks},
-            'oracle_or_llm': results,
-        }
+        ablations: dict[str, dict[str, float]] = {}
+        if picker is _single_baseline:
+            ablations['single'] = dict(results)
+        else:
+            ablations['single'] = {task: run_episode(task, _single_baseline, 'single-baseline') for task in tasks}
+        if picker is _roundrobin_baseline:
+            ablations['roundrobin'] = dict(results)
+        else:
+            ablations['roundrobin'] = {
+                task: run_episode(task, _roundrobin_baseline, 'roundrobin-baseline') for task in tasks
+            }
+        ablations['oracle_or_llm'] = dict(results)
         trained_ckpt = REPO / 'training' / 'checkpoints' / 'cos_final.pt'
         if trained_ckpt.exists():
-            ablations['trained_cos'] = {
-                task: run_episode(task, _trained_action, 'trained-cos') for task in tasks
-            }
+            if picker is _trained_action:
+                ablations['trained_cos'] = dict(results)
+            else:
+                ablations['trained_cos'] = {
+                    task: run_episode(task, _trained_action, 'trained-cos') for task in tasks
+                }
         cache_dir = REPO / 'cache'
         cache_dir.mkdir(exist_ok=True)
         (cache_dir / 'ablation_results.json').write_text(json.dumps(ablations, indent=2), encoding='utf-8')
