@@ -9,10 +9,11 @@ description = "AutoDataLab++ multi-agent company simulation for OpenEnv"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.115.0",
-    "uvicorn>=0.30.0",
+    "uvicorn[standard]>=0.30.0",
     "pydantic>=2.7.0",
     "pandas>=2.2.0",
     "numpy>=1.26.0",
+    "torch>=2.0.0",
     "openai>=1.30.0",
     "python-dotenv>=1.0.1",
     "openenv-core[core]>=0.2.2",
@@ -40,3 +41,4 @@ packages = [
 
 [tool.setuptools.package-data]
 ceo_brief_env = ["tasks/**/*.csv", "tasks/**/*.json"]
+server = ["static/**"]

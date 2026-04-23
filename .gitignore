@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.cache/
+cache/
+.env
+.env.local
+*.egg-info/
