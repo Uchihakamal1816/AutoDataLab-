@@ -29,6 +29,11 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
+# Kaggle can trip torch.compile/triton paths when transformers imports optional
+# packages. Keep inference on the plain eager path.
+os.environ.setdefault("TORCH_COMPILE_DISABLE", "1")
+os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
+
 # Make the env package importable both as a script and from a Kaggle notebook.
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
@@ -112,11 +117,32 @@ def _parse_action(text: str, CoSAction):
 
 
 def _load_llm(base_model_id: str, adapter_id: Optional[str], adapter_subfolder: Optional[str], use_4bit: bool, hf_token: Optional[str]):
-    """Load base model and (optionally) attach a PEFT/LoRA adapter."""
+    """Load base model and (optionally) attach a PEFT/LoRA adapter.
+
+    When an adapter is present we:
+      * load the *adapter's* tokenizer (training-time chat template + special
+        tokens; avoids vocab drift),
+      * resize base model embeddings to that tokenizer **before** PEFT attach,
+      * load adapter and ``merge_and_unload`` for a clean inference graph
+        (also fixes ``set_input_embeddings``-style layer mismatch errors).
+    """
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    tok = AutoTokenizer.from_pretrained(base_model_id, token=hf_token)
+    tokenizer_source = adapter_id or base_model_id
+    tok_kw: dict[str, Any] = {"token": hf_token}
+    if adapter_id and adapter_subfolder:
+        tok_kw["subfolder"] = adapter_subfolder
+    try:
+        tok = AutoTokenizer.from_pretrained(tokenizer_source, **tok_kw)
+    except Exception as e:
+        if not adapter_id:
+            raise
+        print(
+            f"[load] warn: adapter tokenizer failed ({e}); falling back to base tokenizer.",
+            flush=True,
+        )
+        tok = AutoTokenizer.from_pretrained(base_model_id, token=hf_token)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
 
@@ -128,7 +154,7 @@ def _load_llm(base_model_id: str, adapter_id: Optional[str], adapter_subfolder: 
             bnb_cfg = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_compute_dtype=torch.float16,
                 bnb_4bit_use_double_quant=True,
             )
         except Exception:
@@ -140,15 +166,21 @@ def _load_llm(base_model_id: str, adapter_id: Optional[str], adapter_subfolder: 
             token=hf_token,
             device_map="auto",
             quantization_config=bnb_cfg,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
         )
     except Exception:
         model = AutoModelForCausalLM.from_pretrained(
             base_model_id,
             token=hf_token,
             device_map="auto",
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
         )
+
+    if adapter_id:
+        try:
+            model.resize_token_embeddings(len(tok))
+        except Exception as e:
+            print(f"[load] warn: resize_token_embeddings failed: {e}", flush=True)
 
     model.eval()
 
@@ -159,6 +191,13 @@ def _load_llm(base_model_id: str, adapter_id: Optional[str], adapter_subfolder: 
         if adapter_subfolder:
             kw["subfolder"] = adapter_subfolder
         model = PeftModel.from_pretrained(model, adapter_id, **kw)
+        try:
+            model = model.merge_and_unload()
+        except Exception as e:
+            print(
+                f"[load] warn: merge_and_unload failed ({e}); keeping PEFT wrapper.",
+                flush=True,
+            )
         model.eval()
 
     return tok, model

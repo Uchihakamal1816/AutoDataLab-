@@ -216,13 +216,21 @@ def main() -> int:
     ap.add_argument("--episodes", type=int, default=400)
     ap.add_argument("--lr", type=float, default=3e-3)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--shaping",
+        choices=("default", "strict"),
+        default="default",
+        help="reward shaping; 'strict' adds anti-degenerate penalties (repeat, "
+        "over-consult, premature summarize) and a small early-finish bonus. "
+        "Terminal grader is unchanged either way.",
+    )
     args = ap.parse_args()
 
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    env = CEOBriefEnvironment()
+    env = CEOBriefEnvironment(shaping=args.shaping)
     policy = PolicyNet()
     ckpt_dir = ROOT / "training" / "checkpoints"
     curve_dir = ROOT / "training" / "reward_curves"

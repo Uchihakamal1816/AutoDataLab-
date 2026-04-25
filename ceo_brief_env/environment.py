@@ -29,12 +29,27 @@ def required_experts_for_task(task_name: str) -> list[str]:
 
 
 class CEOBriefEnvironment:
-    def __init__(self) -> None:
+    def __init__(self, shaping: str = "default") -> None:
+        """Multi-agent CEO-brief env.
+
+        ``shaping`` controls the dense per-step reward. The terminal grader is
+        unchanged either way; that is what hackathon scoring uses.
+
+        - ``"default"``: legacy per-step rewards. Stable; matches existing
+          trained checkpoints and submitted runs.
+        - ``"strict"``: anti-degenerate shaping for RL training. Adds a
+          repetition penalty, an over-consult penalty, an early-finish bonus
+          when all required experts are covered, and a stronger penalty for
+          summarizing before required experts have reported. Use for new
+          GRPO/REINFORCE runs to discourage "summarize-spam -> submit" lazy
+          policies.
+        """
         self.analyst = DataAnalystExpert()
         self.finance = FinanceExpert()
         self.hr = HRExpert()
         self.strategy = StrategyExpert()
         self.use_rag = False
+        self.shaping = shaping if shaping in {"default", "strict"} else "default"
         self.reset()
 
     def reset(self, task: str = 'easy_brief', episode_id: str | None = None, use_rag: bool = False) -> CoSObservation:
@@ -56,6 +71,8 @@ class CEOBriefEnvironment:
         self.last_terminal = None
         self.last_data_quality = 0.0
         self.last_issues = ['No experts consulted yet.']
+        self._consult_counts: Dict[str, int] = {}
+        self._last_action_key: str | None = None
         return self._observe(initial=True)
 
     def state(self) -> CoSState:
@@ -177,7 +194,13 @@ class CEOBriefEnvironment:
         self.step_count += 1
         immediate = -0.02
         details = action.model_dump(exclude_none=True)
-        self.history.append(json.dumps(details, sort_keys=True))
+        action_key = json.dumps(details, sort_keys=True)
+        self.history.append(action_key)
+        strict = self.shaping == 'strict'
+        if strict and self._last_action_key is not None and action_key == self._last_action_key:
+            immediate -= 0.05
+        self._last_action_key = action_key
+        required = list(self.meta.get('required_experts', []))
         if action.action_type in {'consult', 'ask'}:
             if not action.expert_id:
                 immediate -= 0.03
@@ -186,14 +209,24 @@ class CEOBriefEnvironment:
                 prior = action.expert_id in self.expert_reports
                 report = self._run_expert(action.expert_id, focused=action.action_type == 'ask')
                 self.expert_reports[action.expert_id] = report
-                immediate += 0.10 if not prior and action.expert_id in self.meta.get('required_experts', []) else 0.02
+                immediate += 0.10 if not prior and action.expert_id in required else 0.02
                 if prior:
                     immediate -= 0.05
+                if strict:
+                    self._consult_counts[action.expert_id] = self._consult_counts.get(action.expert_id, 0) + 1
+                    if self._consult_counts[action.expert_id] > 2:
+                        immediate -= 0.10
                 self.last_issues = report.issues or [f'{action.expert_id}:ok']
         elif action.action_type == 'summarize':
+            brief_already_exists = self.current_brief is not None
+            missing_required = [e for e in required if e not in self.expert_reports]
             self._ensure_required_experts()
             self._compose_brief()
             immediate += 0.04 if len(self.expert_reports) >= 2 else -0.02
+            if strict and missing_required:
+                immediate -= 0.05 * len(missing_required)
+            if strict and brief_already_exists:
+                immediate -= 0.08
             self.last_issues = ['brief_composed']
         elif action.action_type == 'submit':
             auto_filled = self._ensure_required_experts()
@@ -204,6 +237,11 @@ class CEOBriefEnvironment:
                 self.gt_metrics, self.meta, self.current_brief, self.expert_reports, use_rag=self.use_rag
             )
             immediate += self.last_terminal
+            if strict and not auto_filled:
+                max_steps = int(self.meta.get('max_steps', 12))
+                steps_saved = max(0, max_steps - self.step_count)
+                if steps_saved > 0 and all(e in self.expert_reports for e in required):
+                    immediate += min(0.10, 0.01 * steps_saved)
             self.last_issues = ['submitted'] + (
                 [f'auto_consulted:{",".join(auto_filled)}'] if auto_filled else []
             )
