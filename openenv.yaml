@@ -36,3 +36,9 @@ tasks:
     summary: >
       Produce a board-style summary with risk flags, forecast, strategy, and a
       CFO-facing memo.
+  - id: expert_brief
+    difficulty: hard
+    grader: ceo_brief_env.graders:grade_episode
+    summary: >
+      Full specialist stack: analytics, finance forecast, NVDA/AAPL/JPM strategy
+      line, and executive memo; use RAG and Stooq when advanced mode is on.

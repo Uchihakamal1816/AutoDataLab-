@@ -1,8 +1,8 @@
 metric,value
 data_quality_score,1.0
-total_revenue,59354.99
+total_revenue,58998.58
 top_category,Electronics
-projection_next_quarter,93757.53
-variance_pct,128.29
+projection_next_quarter,102114.97
+variance_pct,126.92
 break_even_units,14.12
-memo_score,0.999
+memo_score,0.725

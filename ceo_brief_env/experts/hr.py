@@ -4,14 +4,19 @@ from ..models import ExpertReport
 from subenvs.email.hr_tools import build_hr_memo, score_memo
 from subenvs.email.graders import grade_response
 
-
 # Maps CoS brief tasks to the Round 1 email-env task IDs so the right
 # task-specific rubric fires inside grade_response.
 _BRIEF_TO_EMAIL_TASK = {
     "easy_brief": "task_1",
     "medium_brief": "task_2",
     "hard_brief": "task_3",
+    "expert_brief": "task_3",
 }
+
+_HR_QUERY = (
+    "memo style guide audience tone bullet highlights "
+    "call to action professional direct exemplar"
+)
 
 
 def _clamp(score: float) -> float:
@@ -30,6 +35,7 @@ class HRExpert:
         finance_report: ExpertReport | None,
         strategy_report: ExpertReport | None = None,
         focused: bool = False,
+        use_rag: bool = False,
     ) -> ExpertReport:
         # --- 1. Build the memo from upstream reports -----------------------
         highlights: list[str] = []
@@ -40,15 +46,27 @@ class HRExpert:
         if strategy_report:
             highlights.extend(strategy_report.bullet_points[:2])
 
+        memory_citations: list[str] = []
+        memory_snippets: list[str] = []
+        if use_rag:
+            from memory import get_retriever
+
+            hits = get_retriever().query(_HR_QUERY, k=2)
+            memory_citations = [h.as_citation() for h in hits]
+            memory_snippets = [h.snippet for h in hits]
+            if hits:
+                highlights.insert(
+                    0,
+                    f"Memo follows {hits[0].source.split('#')[0]} (style SOP retrieved from company memory).",
+                )
+
         audience = str(task_meta.get("memo_audience", "team"))
         title = str(task_meta.get("title", task_name))
         memo = build_hr_memo(audience, title, highlights)
 
         # --- 2. Three-part scoring ----------------------------------------
-        # (a) Structure + required-term coverage (Kamal's stub).
         structure_score = score_memo(memo, task_meta.get("hr_required_terms", []))
 
-        # (b) Professional tone + task-specific rubric (Round 1 grader).
         email_task_id = _BRIEF_TO_EMAIL_TASK.get(task_name, "task_1")
         tone_score = grade_response(
             email=task_meta.get("instruction", ""),
@@ -56,7 +74,6 @@ class HRExpert:
             task_id=email_task_id,
         )
 
-        # (c) Audience mention bonus.
         audience_hit = 1.0 if audience.lower() in memo.lower() else 0.0
 
         blended = 0.45 * structure_score + 0.45 * tone_score + 0.10 * audience_hit
@@ -92,4 +109,6 @@ class HRExpert:
             issues=issues,
             memo=memo,
             score=score,
+            memory_citations=memory_citations,
+            memory_snippets=memory_snippets,
         )

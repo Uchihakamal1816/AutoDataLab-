@@ -1,0 +1,21 @@
+{
+  "title": "Full expert stack — data, finance, market strategy, comms",
+  "difficulty": "hard",
+  "max_steps": 14,
+  "instruction": "Run the full office: data quality and KPIs on Q3, finance forecast and variance vs plan, strategy view on the NVDA/AAPL/JPM watchlist aligned to our numbers, and a crisp executive memo. When advanced memory (RAG) is on, tie strategy to SOPs and external tape; otherwise internal metrics only.",
+  "required_experts": [
+    "analyst",
+    "finance",
+    "strategy",
+    "hr"
+  ],
+  "memo_audience": "CFO and strategy leads",
+  "hr_required_terms": [
+    "forecast",
+    "variance",
+    "strategy"
+  ],
+  "plan_value": 88000,
+  "fixed_cost": 32000,
+  "unit_margin": 2000
+}

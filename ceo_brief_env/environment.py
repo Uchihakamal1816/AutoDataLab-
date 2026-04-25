@@ -13,6 +13,18 @@ from .models import Brief, CoSAction, CoSObservation, CoSState, ExpertReport, Re
 
 TASK_ROOT = Path(__file__).resolve().parent / 'tasks'
 
+# Per-task order for “single” baselines, oracle, and any policy that should cover required experts.
+REQUIRED_EXPERTS_BY_TASK: dict[str, list[str]] = {
+    'easy_brief': ['analyst', 'finance', 'hr'],
+    'medium_brief': ['analyst', 'finance', 'strategy', 'hr'],
+    'hard_brief': ['analyst', 'finance', 'strategy', 'hr'],
+    'expert_brief': ['analyst', 'finance', 'strategy', 'hr'],
+}
+
+
+def required_experts_for_task(task_name: str) -> list[str]:
+    return list(REQUIRED_EXPERTS_BY_TASK.get(task_name, ['analyst', 'finance', 'hr']))
+
 
 class CEOBriefEnvironment:
     def __init__(self) -> None:
@@ -20,9 +32,11 @@ class CEOBriefEnvironment:
         self.finance = FinanceExpert()
         self.hr = HRExpert()
         self.strategy = StrategyExpert()
+        self.use_rag = False
         self.reset()
 
-    def reset(self, task: str = 'easy_brief', episode_id: str | None = None) -> CoSObservation:
+    def reset(self, task: str = 'easy_brief', episode_id: str | None = None, use_rag: bool = False) -> CoSObservation:
+        self.use_rag = use_rag
         self.episode_id = episode_id or str(uuid4())
         self.task_name = task if (TASK_ROOT / task).exists() else 'easy_brief'
         task_dir = TASK_ROOT / self.task_name
@@ -48,6 +62,7 @@ class CEOBriefEnvironment:
             task_name=self.task_name,
             step_count=self.step_count,
             done=self.done,
+            rag_enabled=self.use_rag,
             consulted_experts=list(self.expert_reports.keys()),
             expert_reports=self.expert_reports,
             current_brief=self.current_brief,
@@ -66,6 +81,7 @@ class CEOBriefEnvironment:
             task_difficulty=self.meta['difficulty'],
             max_steps=int(self.meta.get('max_steps', 12)),
             step_count=self.step_count,
+            rag_enabled=self.use_rag,
             consulted_experts=list(self.expert_reports.keys()),
             expert_reports=self.expert_reports,
             current_brief=self.current_brief,
@@ -103,22 +119,36 @@ class CEOBriefEnvironment:
     def _run_expert(self, expert_id: str, focused: bool = False) -> ExpertReport:
         question = self.meta['instruction']
         if expert_id == 'analyst':
-            report = self.analyst.run(self.task_name, question, self.raw_df, focused=focused)
+            report = self.analyst.run(
+                self.task_name, question, self.raw_df, focused=focused, use_rag=self.use_rag
+            )
             self.last_data_quality = float(report.metrics.get('data_quality_score', 0.0))
             self.last_issues = report.issues or ['analyst:no material issues']
             return report
         if expert_id == 'finance':
             analyst = self.expert_reports.get('analyst') or self._run_expert('analyst')
-            return self.finance.run(self.task_name, question, self.raw_df, analyst.metrics, self.meta, focused=focused)
+            return self.finance.run(
+                self.task_name,
+                question,
+                self.raw_df,
+                analyst.metrics,
+                self.meta,
+                focused=focused,
+                use_rag=self.use_rag,
+            )
         if expert_id == 'strategy':
             analyst = self.expert_reports.get('analyst') or self._run_expert('analyst')
             finance = self.expert_reports.get('finance') or self._run_expert('finance')
-            return self.strategy.run(self.task_name, self.meta, analyst, finance, focused=focused)
+            return self.strategy.run(
+                self.task_name, self.meta, analyst, finance, focused=focused, use_rag=self.use_rag
+            )
         if expert_id == 'hr':
             analyst = self.expert_reports.get('analyst') or self._run_expert('analyst')
             finance = self.expert_reports.get('finance') or self._run_expert('finance')
             strategy = self.expert_reports.get('strategy')
-            return self.hr.run(self.task_name, self.meta, analyst, finance, strategy, focused=focused)
+            return self.hr.run(
+                self.task_name, self.meta, analyst, finance, strategy, focused=focused, use_rag=self.use_rag
+            )
         raise ValueError(f'Unknown expert {expert_id!r}')
 
     def step(self, action: CoSAction) -> CoSObservation:
@@ -148,7 +178,9 @@ class CEOBriefEnvironment:
             if self.current_brief is None:
                 self._compose_brief()
             self.done = True
-            self.last_terminal = grade_episode(self.gt_metrics, self.meta, self.current_brief, self.expert_reports)
+            self.last_terminal = grade_episode(
+                self.gt_metrics, self.meta, self.current_brief, self.expert_reports, use_rag=self.use_rag
+            )
             immediate += self.last_terminal
             self.last_issues = ['submitted']
         else:
@@ -159,7 +191,9 @@ class CEOBriefEnvironment:
             if self.current_brief is None:
                 self._compose_brief()
             self.done = True
-            self.last_terminal = grade_episode(self.gt_metrics, self.meta, self.current_brief, self.expert_reports)
+            self.last_terminal = grade_episode(
+                self.gt_metrics, self.meta, self.current_brief, self.expert_reports, use_rag=self.use_rag
+            )
             immediate += self.last_terminal
             self.last_issues = ['forced_termination:max_steps']
 
@@ -169,12 +203,7 @@ class CEOBriefEnvironment:
 
 
 def oracle_action_for_observation(obs: CoSObservation) -> CoSAction:
-    required = {
-        'easy_brief': ['analyst', 'finance', 'hr'],
-        'medium_brief': ['analyst', 'finance', 'strategy', 'hr'],
-        'hard_brief': ['analyst', 'finance', 'strategy', 'hr'],
-    }.get(obs.task_name, ['analyst', 'finance', 'hr'])
-    for expert in required:
+    for expert in required_experts_for_task(obs.task_name):
         if expert not in obs.consulted_experts:
             return CoSAction(action_type='consult', expert_id=expert)
     if obs.current_brief is None:

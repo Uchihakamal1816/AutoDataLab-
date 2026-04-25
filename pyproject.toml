@@ -33,6 +33,7 @@ include-package-data = true
 packages = [
     "ceo_brief_env",
     "ceo_brief_env.experts",
+    "memory",
     "subenvs",
     "subenvs.autodatalab",
     "subenvs.email",
@@ -40,5 +41,6 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-ceo_brief_env = ["tasks/**/*.csv", "tasks/**/*.json"]
+ceo_brief_env = ["tasks/**/*.csv", "tasks/**/*.json", "fixtures/stooq/*.csv"]
+memory = ["sops/*.md", "history/*.md", "policies/*.md"]
 server = ["static/**"]

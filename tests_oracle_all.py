@@ -1,7 +1,7 @@
 """Run oracle on all 3 briefs — validator gate."""
 from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_observation
 
-BRIEFS = ["easy_brief", "medium_brief", "hard_brief"]
+BRIEFS = ["easy_brief", "medium_brief", "hard_brief", "expert_brief"]
 results = {}
 
 for brief in BRIEFS:

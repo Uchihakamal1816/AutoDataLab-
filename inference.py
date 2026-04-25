@@ -7,13 +7,13 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://router.huggingface.co/v1')
 MODEL_NAME = os.getenv('MODEL_NAME', 'Qwen/Qwen2.5-72B-Instruct')
 API_KEY = os.getenv('API_KEY') or os.getenv('HF_TOKEN') or ''
 BENCHMARK = 'autodatalab_plus'
-TASKS = [t.strip() for t in os.getenv('AUTODATALAB_PLUS_TASKS', 'easy_brief,medium_brief,hard_brief').split(',') if t.strip()]
+TASKS = [t.strip() for t in os.getenv('AUTODATALAB_PLUS_TASKS', 'easy_brief,medium_brief,hard_brief,expert_brief').split(',') if t.strip()]
 
 _LOG_SCORE_MIN = 0.001
 _LOG_SCORE_MAX = 0.999
@@ -22,7 +22,7 @@ REPO = Path(__file__).resolve().parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_observation
+from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_observation, required_experts_for_task
 from ceo_brief_env.models import CoSAction
 
 
@@ -55,10 +55,9 @@ def _action_str(action: CoSAction) -> str:
 
 
 def _single_baseline(obs) -> CoSAction:
-    if 'analyst' not in obs.consulted_experts:
-        return CoSAction(action_type='consult', expert_id='analyst')
-    if 'hr' not in obs.consulted_experts:
-        return CoSAction(action_type='consult', expert_id='hr')
+    for e in required_experts_for_task(obs.task_name):
+        if e not in obs.consulted_experts:
+            return CoSAction(action_type='consult', expert_id=e)
     if obs.current_brief is None:
         return CoSAction(action_type='summarize')
     return CoSAction(action_type='submit')
@@ -73,24 +72,54 @@ def _roundrobin_baseline(obs) -> CoSAction:
     return CoSAction(action_type='submit')
 
 
-_TRAINED_POLICY = {"model": None}
+_TRAINED_POLICY: dict = {"model": None, "load_status": None, "load_warned": False}
 
 
 def _trained_action(obs) -> CoSAction:
     import numpy as np
     import torch
 
-    from training.train_cos_local import ACTIONS, PolicyNet, featurize
+    from training.train_cos_local import (
+        ACTIONS,
+        PolicyNet,
+        featurize,
+        load_policy_state_dict_from_file,
+    )
 
     if _TRAINED_POLICY["model"] is None:
+        import sys
+
         ckpt = REPO / "training" / "checkpoints" / "cos_final.pt"
         if not ckpt.exists():
             ckpt = REPO / "training" / "checkpoints" / "cos_ckpt0.pt"
         model = PolicyNet()
+        status = "random_init"
         if ckpt.exists():
-            model.load_state_dict(torch.load(ckpt, map_location="cpu"))
+            try:
+                status = load_policy_state_dict_from_file(model, ckpt)
+            except (OSError, RuntimeError, KeyError) as e:
+                print(
+                    f"[inference] warning: could not load {ckpt} ({e}); using random init.",
+                    file=sys.stderr,
+                )
+                model = PolicyNet()
+                status = f"load_failed: {e}"
+        else:
+            print(
+                "[inference] warning: no checkpoint; using random PolicyNet. "
+                "Run: python3 training/train_cos_local.py",
+                file=sys.stderr,
+            )
+        if status != "ok" and "padded" in status and not _TRAINED_POLICY.get("load_warned"):
+            print(
+                f"[inference] loaded checkpoint with compat: {status}. "
+                "Re-run training for best results: python3 training/train_cos_local.py",
+                file=sys.stderr,
+            )
+            _TRAINED_POLICY["load_warned"] = True
         model.eval()
         _TRAINED_POLICY["model"] = model
+        _TRAINED_POLICY["load_status"] = status
     model = _TRAINED_POLICY["model"]
     feats = torch.from_numpy(featurize(obs)).unsqueeze(0)
     with torch.no_grad():
@@ -151,30 +180,77 @@ def _llm_action(obs) -> CoSAction:
     return CoSAction.model_validate(payload)
 
 
-def run_episode(task: str, picker: Callable, label: str) -> float:
+def run_episode_collect(
+    task: str,
+    picker: Callable,
+    label: str,
+    use_rag: bool = False,
+    quiet: bool = False,
+) -> dict[str, Any]:
+    """
+    Run one episode and return structured data (for --export). Same dynamics as `run_episode`.
+    """
     env = CEOBriefEnvironment()
-    obs = env.reset(task=task)
+    obs = env.reset(task=task, use_rag=use_rag)
     rewards: list[float] = []
+    trace: list[dict[str, Any]] = []
     steps = 0
     score = 0.001
     success = False
-    log_start(task=task, env=BENCHMARK, model=label)
+    err: Optional[str] = None
+    if not quiet:
+        log_start(task=task, env=f'{BENCHMARK} rag={use_rag}', model=label)
     try:
         while not obs.done and steps < obs.max_steps:
             steps += 1
             action = picker(obs)
             obs = env.step(action)
-            rewards.append(float(obs.reward))
-            log_step(steps, _action_str(action), float(obs.reward), bool(obs.done), None)
+            r = float(obs.reward)
+            rewards.append(r)
+            if not quiet:
+                log_step(steps, _action_str(action), r, bool(obs.done), None)
+            trace.append(
+                {
+                    "step": steps,
+                    "action": action.model_dump(exclude_none=True),
+                    "reward": round(r, 4),
+                    "done": bool(obs.done),
+                    "consulted_experts": list(obs.consulted_experts),
+                }
+            )
         score = float(obs.terminal_grader_score or 0.001)
         score = max(0.001, min(0.999, score))
         success = score >= 0.5
-        return score
-    except Exception as exc:
-        log_step(max(steps, 1), 'exception', _LOG_SCORE_MIN, True, str(exc).replace('\n', ' '))
-        return 0.001
+    except Exception as exc:  # noqa: BLE001
+        err = str(exc).replace('\n', ' ')
+        if not quiet:
+            log_step(max(steps, 1), 'exception', _LOG_SCORE_MIN, True, err)
     finally:
-        log_end(success, steps, score, rewards)
+        if not quiet:
+            log_end(success, steps, score, rewards)
+    return {
+        "task": task,
+        "policy_label": label,
+        "use_rag": use_rag,
+        "success": success,
+        "steps": steps,
+        "terminal_score": round(score, 4),
+        "cumulative_reward": round(sum(rewards), 4),
+        "step_rewards": [round(x, 4) for x in rewards],
+        "trace": trace,
+        "error": err,
+        "final_instruction": obs.instruction,
+        "task_difficulty": obs.task_difficulty,
+        "max_steps": obs.max_steps,
+        "consulted_experts": list(obs.consulted_experts),
+        "current_brief": obs.current_brief.model_dump() if obs.current_brief is not None else None,
+        "expert_reports": {k: v.model_dump() for k, v in obs.expert_reports.items()},
+    }
+
+
+def run_episode(task: str, picker: Callable, label: str, use_rag: bool = False) -> float:
+    out = run_episode_collect(task, picker, label, use_rag=use_rag, quiet=False)
+    return float(out["terminal_score"])
 
 
 def main() -> int:
@@ -185,7 +261,18 @@ def main() -> int:
                         help='use locally trained CoS policy (training/checkpoints/cos_final.pt)')
     parser.add_argument('--task')
     parser.add_argument('--ablation', action='store_true')
+    parser.add_argument(
+        '--rag',
+        action='store_true',
+        help='enable organizational memory (RAG) in experts and grounding in the grader (default: off, team parity)',
+    )
+    parser.add_argument(
+        '--export',
+        metavar='DIR',
+        help='save one JSON per task (plus summary.json) under DIR; uses all tasks from env unless --task is set',
+    )
     args = parser.parse_args()
+    use_rag = bool(args.rag)
 
     if args.trained:
         picker = _trained_action
@@ -204,21 +291,59 @@ def main() -> int:
         label = MODEL_NAME
 
     tasks = [args.task] if args.task else TASKS
-    results = {}
-    for task in tasks:
-        results[task] = run_episode(task, picker, label)
 
-    if args.ablation:
+    if args.export:
+        out_dir = Path(args.export).resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        by_task: dict[str, dict[str, Any]] = {}
+        for task in tasks:
+            row = run_episode_collect(task, picker, label, use_rag=use_rag, quiet=True)
+            by_task[task] = row
+            (out_dir / f'{task}.json').write_text(
+                json.dumps(row, indent=2, default=str), encoding='utf-8'
+            )
+            print(
+                f'[export] {task} terminal={row["terminal_score"]} steps={row["steps"]} success={row["success"]}',
+                flush=True,
+            )
+        mean_term = float(sum(t['terminal_score'] for t in by_task.values()) / max(len(by_task), 1))
+        summary: dict[str, Any] = {
+            'policy_label': label,
+            'use_rag': use_rag,
+            'checkpoint_load': _TRAINED_POLICY.get('load_status') if label == 'trained-cos' else None,
+            'tasks': {
+                t: {
+                    'terminal_score': by_task[t]['terminal_score'],
+                    'success': by_task[t]['success'],
+                    'steps': by_task[t]['steps'],
+                    'cumulative_reward': by_task[t]['cumulative_reward'],
+                }
+                for t in by_task
+            },
+            'mean_terminal': round(mean_term, 4),
+            'export_dir': str(out_dir),
+        }
+        (out_dir / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
+        print(f'[export] wrote {len(tasks) + 1} files to {out_dir}', flush=True)
+        return 0
+    else:
+        results = {}
+        for task in tasks:
+            results[task] = run_episode(task, picker, label, use_rag=use_rag)
+
+    if args.ablation and not args.export:
         ablations: dict[str, dict[str, float]] = {}
         if picker is _single_baseline:
             ablations['single'] = dict(results)
         else:
-            ablations['single'] = {task: run_episode(task, _single_baseline, 'single-baseline') for task in tasks}
+            ablations['single'] = {
+                task: run_episode(task, _single_baseline, 'single-baseline', use_rag=use_rag) for task in tasks
+            }
         if picker is _roundrobin_baseline:
             ablations['roundrobin'] = dict(results)
         else:
             ablations['roundrobin'] = {
-                task: run_episode(task, _roundrobin_baseline, 'roundrobin-baseline') for task in tasks
+                task: run_episode(task, _roundrobin_baseline, 'roundrobin-baseline', use_rag=use_rag) for task in tasks
             }
         ablations['oracle_or_llm'] = dict(results)
         trained_ckpt = REPO / 'training' / 'checkpoints' / 'cos_final.pt'
@@ -227,7 +352,7 @@ def main() -> int:
                 ablations['trained_cos'] = dict(results)
             else:
                 ablations['trained_cos'] = {
-                    task: run_episode(task, _trained_action, 'trained-cos') for task in tasks
+                    task: run_episode(task, _trained_action, 'trained-cos', use_rag=use_rag) for task in tasks
                 }
         cache_dir = REPO / 'cache'
         cache_dir.mkdir(exist_ok=True)

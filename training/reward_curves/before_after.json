@@ -1,35 +1,43 @@
 {
-  "episodes": 600,
+  "episodes": 400,
   "lr": 0.003,
   "before": {
     "easy_brief": {
-      "mean_terminal": 0.6135,
-      "mean_cumulative": 0.6595
+      "mean_terminal": 0.4372,
+      "mean_cumulative": 0.5092
     },
     "medium_brief": {
-      "mean_terminal": 0.605,
-      "mean_cumulative": 0.641
+      "mean_terminal": 0.2686,
+      "mean_cumulative": 0.3346
     },
     "hard_brief": {
-      "mean_terminal": 0.3906,
-      "mean_cumulative": 0.4546
+      "mean_terminal": 0.4591,
+      "mean_cumulative": 0.5011
+    },
+    "expert_brief": {
+      "mean_terminal": 0.5814,
+      "mean_cumulative": 0.4874
     }
   },
   "after": {
     "easy_brief": {
-      "mean_terminal": 0.907,
-      "mean_cumulative": 1.181
+      "mean_terminal": 0.6042,
+      "mean_cumulative": 0.7432
     },
     "medium_brief": {
-      "mean_terminal": 0.816,
-      "mean_cumulative": 1.224
+      "mean_terminal": 0.6816,
+      "mean_cumulative": 0.8286
     },
     "hard_brief": {
-      "mean_terminal": 0.7812,
-      "mean_cumulative": 1.2172
+      "mean_terminal": 0.5605,
+      "mean_cumulative": 0.5965
+    },
+    "expert_brief": {
+      "mean_terminal": 0.7664,
+      "mean_cumulative": 0.6784
     }
   },
-  "mean_terminal_before": 0.5364,
-  "mean_terminal_after": 0.8347,
+  "mean_terminal_before": 0.4366,
+  "mean_terminal_after": 0.6532,
   "curve_path": "training/reward_curves/reward_curve.png"
 }

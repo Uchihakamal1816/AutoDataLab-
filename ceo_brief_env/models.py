@@ -32,6 +32,8 @@ class ExpertReport(BaseModel):
     bullet_points: List[str] = Field(default_factory=list)
     issues: List[str] = Field(default_factory=list)
     citations: List[str] = Field(default_factory=list)
+    memory_citations: List[str] = Field(default_factory=list)
+    memory_snippets: List[str] = Field(default_factory=list)
     memo: Optional[str] = None
     score: Optional[float] = None
 
@@ -57,6 +59,7 @@ class CoSObservation(BaseModel):
     data_quality_score: float = 0.0
     task_name: str
     task_difficulty: str
+    rag_enabled: bool = False
     max_steps: int = 12
     step_count: int = 0
     available_experts: List[str] = Field(default_factory=lambda: ["analyst", "finance", "hr", "strategy"])
@@ -74,6 +77,7 @@ class CoSState(BaseModel):
     task_name: str
     step_count: int = 0
     done: bool = False
+    rag_enabled: bool = False
     consulted_experts: List[str] = Field(default_factory=list)
     expert_reports: Dict[str, ExpertReport] = Field(default_factory=dict)
     current_brief: Optional[Brief] = None

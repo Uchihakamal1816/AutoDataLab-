@@ -1,0 +1,250 @@
+{
+  "task": "easy_brief",
+  "policy_label": "trained-cos",
+  "use_rag": false,
+  "success": true,
+  "steps": 8,
+  "terminal_score": 0.5207,
+  "cumulative_reward": 0.4307,
+  "step_rewards": [
+    0.08,
+    0.08,
+    0.0,
+    -0.05,
+    -0.05,
+    -0.05,
+    -0.05,
+    0.4707
+  ],
+  "trace": [
+    {
+      "step": 1,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": 0.08,
+      "done": false,
+      "consulted_experts": [
+        "analyst"
+      ]
+    },
+    {
+      "step": 2,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": 0.08,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr"
+      ]
+    },
+    {
+      "step": 3,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "strategy"
+      },
+      "reward": 0.0,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 4,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 5,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 6,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 7,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 8,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": 0.4707,
+      "done": true,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    }
+  ],
+  "error": null,
+  "final_instruction": "Is our raw sales file trustworthy, what's next quarter's revenue looking like, and send the team a one-paragraph update.",
+  "task_difficulty": "easy",
+  "max_steps": 8,
+  "consulted_experts": [
+    "analyst",
+    "hr",
+    "strategy"
+  ],
+  "current_brief": {
+    "summary": "Cleaned 8 raw rows into 7 trusted rows. Top category is Electronics and total revenue is 59354.99. Portfolio call on NVDA, AAPL, JPM: map internal 'Electronics' to actions vs plan, with static **Present** (this cycle) and **Future** (next 1-2Q) buy/sell/hold/trim guidance per line.",
+    "metrics": {
+      "duplicates_removed": 1,
+      "imputed_prices": 1,
+      "data_quality_score": 1.0,
+      "total_revenue": 59354.99,
+      "avg_order_value": 8479.28,
+      "top_category": "Electronics",
+      "top_category_revenue": 34710.0
+    },
+    "recommendations": [
+      "NVDA (NVIDIA): buy more (reinforce tech / AI exposure; aligns with strong Electronics sell-through vs plan) \u2014 tie to internal numbers including 59354.99 while top internal category 'Electronics' is in focus and the latest projection/variance read vs plan. Present: **hold** to **buy small** only within risk limits; no forced trade today. Future: **add / buy** on a staged plan over the next 1-2 quarters while Electronics strength persists.",
+      "AAPL (Apple): add (broaden megacap tech anchor alongside internal Electronics strength) \u2014 tie to internal numbers including 93757.53 cross-check against 'Beauty' demand mix and the latest projection/variance read vs plan. Present: **hold** to **add** a sliver of core quality if account policy allows (optional today). Future: **buy / add** as a megacap anchor over the next two quarters (static ladder, not market timing).",
+      "JPM (JPMorgan): hold (bank anchor; rotate only on clearer variance reversion to plan) \u2014 tie to internal numbers including 128.29 and break-even path ~14.12 units in our operating model and the latest projection/variance read vs plan. Present: **hold** the bank anchor; no need to day-trade the sleeve. Future: only **sell** down if the operating plan is consistently ahead and you rotate into growth; else **hold**."
+    ],
+    "hr_memo": "Hello team,\n\nThank you for moving quickly on this update.\nHere is the latest business update for Revenue sanity check.\n- Removed 1 duplicate rows and imputed 1 missing prices.\n- Data quality score is 1.00 with 0 invalid date rows.\n- Next-quarter revenue projection is 93757.53 with +/- 34927.53 band.\n- Variance versus plan is 33354.99 (128.29%).\n\nPlease review the actions above and reply with any blockers today.\nBest,\nHR Operations",
+    "consulted_experts": [
+      "analyst",
+      "hr",
+      "strategy"
+    ]
+  },
+  "expert_reports": {
+    "analyst": {
+      "expert_id": "analyst",
+      "title": "Data Analyst Report",
+      "summary": "Cleaned 8 raw rows into 7 trusted rows. Top category is Electronics and total revenue is 59354.99.",
+      "metrics": {
+        "duplicates_removed": 1,
+        "imputed_prices": 1,
+        "data_quality_score": 1.0,
+        "total_revenue": 59354.99,
+        "avg_order_value": 8479.28,
+        "top_category": "Electronics",
+        "top_category_revenue": 34710.0
+      },
+      "bullet_points": [
+        "Removed 1 duplicate rows and imputed 1 missing prices.",
+        "Data quality score is 1.00 with 0 invalid date rows.",
+        "Electronics leads revenue at 34710.00."
+      ],
+      "issues": [],
+      "citations": [
+        "Electronics",
+        "Beauty",
+        "Home"
+      ],
+      "memory_citations": [],
+      "memory_snippets": [],
+      "memo": null,
+      "score": null
+    },
+    "hr": {
+      "expert_id": "hr",
+      "title": "HR / Communications Memo",
+      "summary": "Drafted the internal memo and scored it on structure, professional tone, and audience relevance.",
+      "metrics": {
+        "memo_structure_score": 0.999,
+        "memo_tone_score": 0.39,
+        "audience_reference": 1.0,
+        "memo_score": 0.725
+      },
+      "bullet_points": [
+        "Memo addressed to team.",
+        "Structure score 0.999, tone score 0.390.",
+        "Blended score uses 45% structure, 45% tone, 10% audience bonus."
+      ],
+      "issues": [
+        "hr:weak_professional_tone"
+      ],
+      "citations": [],
+      "memory_citations": [],
+      "memory_snippets": [],
+      "memo": "Hello team,\n\nThank you for moving quickly on this update.\nHere is the latest business update for Revenue sanity check.\n- Removed 1 duplicate rows and imputed 1 missing prices.\n- Data quality score is 1.00 with 0 invalid date rows.\n- Next-quarter revenue projection is 93757.53 with +/- 34927.53 band.\n- Variance versus plan is 33354.99 (128.29%).\n\nPlease review the actions above and reply with any blockers today.\nBest,\nHR Operations",
+      "score": 0.725
+    },
+    "strategy": {
+      "expert_id": "strategy",
+      "title": "Strategy \u2014 public equities (watchlist)",
+      "summary": "Portfolio call on NVDA, AAPL, JPM: map internal 'Electronics' to actions vs plan, with static **Present** (this cycle) and **Future** (next 1-2Q) buy/sell/hold/trim guidance per line.",
+      "metrics": {
+        "recommendation_count": 3,
+        "nvda": "buy_more",
+        "aapl": "add",
+        "jpm": "hold",
+        "nvda_present": "hold",
+        "nvda_future": "buy",
+        "aapl_present": "hold",
+        "aapl_future": "add",
+        "jpm_present": "hold",
+        "jpm_future": "sell",
+        "watchlist": "NVDA,AAPL,JPM"
+      },
+      "bullet_points": [
+        "NVDA (NVIDIA): buy more (reinforce tech / AI exposure; aligns with strong Electronics sell-through vs plan) \u2014 tie to internal numbers including 59354.99 while top internal category 'Electronics' is in focus and the latest projection/variance read vs plan. Present: **hold** to **buy small** only within risk limits; no forced trade today. Future: **add / buy** on a staged plan over the next 1-2 quarters while Electronics strength persists.",
+        "AAPL (Apple): add (broaden megacap tech anchor alongside internal Electronics strength) \u2014 tie to internal numbers including 93757.53 cross-check against 'Beauty' demand mix and the latest projection/variance read vs plan. Present: **hold** to **add** a sliver of core quality if account policy allows (optional today). Future: **buy / add** as a megacap anchor over the next two quarters (static ladder, not market timing).",
+        "JPM (JPMorgan): hold (bank anchor; rotate only on clearer variance reversion to plan) \u2014 tie to internal numbers including 128.29 and break-even path ~14.12 units in our operating model and the latest projection/variance read vs plan. Present: **hold** the bank anchor; no need to day-trade the sleeve. Future: only **sell** down if the operating plan is consistently ahead and you rotate into growth; else **hold**."
+      ],
+      "issues": [],
+      "citations": [
+        "Electronics",
+        "Beauty",
+        "Home"
+      ],
+      "memory_citations": [],
+      "memory_snippets": [],
+      "memo": null,
+      "score": null
+    }
+  }
+}

@@ -38,7 +38,7 @@ if str(ROOT) not in sys.path:
 from ceo_brief_env.environment import CEOBriefEnvironment
 from ceo_brief_env.models import CoSAction, CoSObservation
 
-TASKS = ["easy_brief", "medium_brief", "hard_brief"]
+TASKS = ["easy_brief", "medium_brief", "hard_brief", "expert_brief"]
 
 ACTIONS: List[CoSAction] = [
     CoSAction(action_type="consult", expert_id="analyst"),
@@ -86,6 +86,36 @@ class PolicyNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
+
+
+def load_policy_state_dict_from_file(model: PolicyNet, path: Path) -> str:
+    """
+    Load a saved ``PolicyNet`` state dict, padding or truncating the first Linear
+    if the checkpoint was trained with a different number of task one-hot slots
+    (e.g. 3 tasks = 10-dim input vs 4 tasks = 11-dim after ``expert_brief``).
+    Returns a short status string: ``ok`` | ``padded_input_*`` | ``truncated_*``.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(str(path))
+    state = torch.load(path, map_location="cpu")
+    wkey, bkey = "net.0.weight", "net.0.bias"
+    if wkey not in state:
+        model.load_state_dict(state)
+        return "ok"
+    new_in, want_in = state[wkey].shape[1], FEAT_DIM
+    if new_in == want_in:
+        model.load_state_dict(state, strict=True)
+        return "ok"
+    w = state[wkey].clone()
+    if new_in < want_in:
+        pad = torch.zeros(w.shape[0], want_in, dtype=w.dtype, device=w.device)
+        pad[:, :new_in] = w
+        state[wkey] = pad
+        model.load_state_dict(state, strict=True)
+        return f"padded_input_{new_in}_to_{want_in}"
+    state[wkey] = w[:, :want_in]
+    model.load_state_dict(state, strict=True)
+    return f"truncated_{new_in}_to_{want_in}"
 
 
 def run_episode(env: CEOBriefEnvironment, policy: PolicyNet, task: str, greedy: bool = False):

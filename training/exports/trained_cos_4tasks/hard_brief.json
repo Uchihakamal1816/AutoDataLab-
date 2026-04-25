@@ -1,0 +1,310 @@
+{
+  "task": "hard_brief",
+  "policy_label": "trained-cos",
+  "use_rag": false,
+  "success": true,
+  "steps": 12,
+  "terminal_score": 0.6185,
+  "cumulative_reward": 0.4085,
+  "step_rewards": [
+    0.08,
+    0.08,
+    0.08,
+    -0.05,
+    -0.05,
+    -0.05,
+    -0.05,
+    -0.05,
+    -0.05,
+    -0.05,
+    -0.05,
+    0.5685
+  ],
+  "trace": [
+    {
+      "step": 1,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": 0.08,
+      "done": false,
+      "consulted_experts": [
+        "analyst"
+      ]
+    },
+    {
+      "step": 2,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "hr"
+      },
+      "reward": 0.08,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr"
+      ]
+    },
+    {
+      "step": 3,
+      "action": {
+        "action_type": "consult",
+        "expert_id": "strategy"
+      },
+      "reward": 0.08,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 4,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 5,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 6,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 7,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 8,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 9,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 10,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 11,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": -0.05,
+      "done": false,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    },
+    {
+      "step": 12,
+      "action": {
+        "action_type": "ask",
+        "expert_id": "analyst"
+      },
+      "reward": 0.5685,
+      "done": true,
+      "consulted_experts": [
+        "analyst",
+        "hr",
+        "strategy"
+      ]
+    }
+  ],
+  "error": null,
+  "final_instruction": "Prepare a board-ready revenue summary with risk flags, Q4 forecast with scenarios, strategic recommendation, and a CFO-facing memo.",
+  "task_difficulty": "hard",
+  "max_steps": 12,
+  "consulted_experts": [
+    "analyst",
+    "hr",
+    "strategy"
+  ],
+  "current_brief": {
+    "summary": "Cleaned 10 raw rows into 9 trusted rows. Top category is Electronics and total revenue is 152832.50. Portfolio call on NVDA, AAPL, JPM: map internal 'Electronics' to actions vs plan, with static **Present** (this cycle) and **Future** (next 1-2Q) buy/sell/hold/trim guidance per line.",
+    "metrics": {
+      "duplicates_removed": 1,
+      "imputed_prices": 1,
+      "data_quality_score": 1.0,
+      "total_revenue": 152832.5,
+      "avg_order_value": 16981.39,
+      "top_category": "Electronics",
+      "top_category_revenue": 120072.5
+    },
+    "recommendations": [
+      "NVDA (NVIDIA): reduce (trim high-beta tech beta \u2014 lock in Q4 if variance stays behind plan) \u2014 tie to internal numbers including 152832.5 while top internal category 'Electronics' is in focus and the latest projection/variance read vs plan. Present: **trim / do not add** (reduce high-beta now while internal variance is behind plan). Future: re-open **buy** scales only if next-quarter **projection** clears plan and **variance** flips ahead.",
+      "AAPL (Apple): hold (keep core quality; avoid size-up while variance is behind plan) \u2014 tie to internal numbers including -12829.5 cross-check against 'Home' demand mix and the latest projection/variance read vs plan. Present: **hold**; **no new buy** until variance to plan improves. Future: **buy** or **add** in the *next* quarter if forecast confidence widens and execution stabilizes.",
+      "JPM (JPMorgan): add (increase defensives / quality financials; reduce portfolio beta vs NVDA + AAPL) \u2014 tie to internal numbers including 101.1 and break-even path ~16.67 units in our operating model and the latest projection/variance read vs plan. Present: **buy / add** defensives to lower portfolio beta (execute now, static sleeve shift). Future: **hold** the defensive sleeve; re-check after **break-even** and plan variance improve."
+    ],
+    "hr_memo": "Hello CFO,\n\nThank you for moving quickly on this update.\nHere is the latest business update for Board-ready summary with risks.\n- Removed 1 duplicate rows and imputed 1 missing prices.\n- Data quality score is 1.00 with 0 invalid date rows.\n- Next-quarter revenue projection is -12829.50 with +/- 54967.93 band.\n- Variance versus plan is 76832.50 (101.10%).\n\nPlease review the actions above and reply with any blockers today.\nBest,\nHR Operations",
+    "consulted_experts": [
+      "analyst",
+      "hr",
+      "strategy"
+    ]
+  },
+  "expert_reports": {
+    "analyst": {
+      "expert_id": "analyst",
+      "title": "Data Analyst Report",
+      "summary": "Cleaned 10 raw rows into 9 trusted rows. Top category is Electronics and total revenue is 152832.50.",
+      "metrics": {
+        "duplicates_removed": 1,
+        "imputed_prices": 1,
+        "data_quality_score": 1.0,
+        "total_revenue": 152832.5,
+        "avg_order_value": 16981.39,
+        "top_category": "Electronics",
+        "top_category_revenue": 120072.5
+      },
+      "bullet_points": [
+        "Removed 1 duplicate rows and imputed 1 missing prices.",
+        "Data quality score is 1.00 with 0 invalid date rows.",
+        "Electronics leads revenue at 120072.50."
+      ],
+      "issues": [],
+      "citations": [
+        "Electronics",
+        "Home",
+        "Sports"
+      ],
+      "memory_citations": [],
+      "memory_snippets": [],
+      "memo": null,
+      "score": null
+    },
+    "hr": {
+      "expert_id": "hr",
+      "title": "HR / Communications Memo",
+      "summary": "Drafted the internal memo and scored it on structure, professional tone, and audience relevance.",
+      "metrics": {
+        "memo_structure_score": 0.9333,
+        "memo_tone_score": 0.39,
+        "audience_reference": 1.0,
+        "memo_score": 0.6955
+      },
+      "bullet_points": [
+        "Memo addressed to CFO.",
+        "Structure score 0.933, tone score 0.390.",
+        "Blended score uses 45% structure, 45% tone, 10% audience bonus."
+      ],
+      "issues": [
+        "hr:weak_professional_tone"
+      ],
+      "citations": [],
+      "memory_citations": [],
+      "memory_snippets": [],
+      "memo": "Hello CFO,\n\nThank you for moving quickly on this update.\nHere is the latest business update for Board-ready summary with risks.\n- Removed 1 duplicate rows and imputed 1 missing prices.\n- Data quality score is 1.00 with 0 invalid date rows.\n- Next-quarter revenue projection is -12829.50 with +/- 54967.93 band.\n- Variance versus plan is 76832.50 (101.10%).\n\nPlease review the actions above and reply with any blockers today.\nBest,\nHR Operations",
+      "score": 0.6955
+    },
+    "strategy": {
+      "expert_id": "strategy",
+      "title": "Strategy \u2014 public equities (watchlist)",
+      "summary": "Portfolio call on NVDA, AAPL, JPM: map internal 'Electronics' to actions vs plan, with static **Present** (this cycle) and **Future** (next 1-2Q) buy/sell/hold/trim guidance per line.",
+      "metrics": {
+        "recommendation_count": 3,
+        "nvda": "reduce",
+        "aapl": "hold",
+        "jpm": "add",
+        "nvda_present": "trim",
+        "nvda_future": "buy",
+        "aapl_present": "hold",
+        "aapl_future": "buy",
+        "jpm_present": "buy",
+        "jpm_future": "hold",
+        "watchlist": "NVDA,AAPL,JPM"
+      },
+      "bullet_points": [
+        "NVDA (NVIDIA): reduce (trim high-beta tech beta \u2014 lock in Q4 if variance stays behind plan) \u2014 tie to internal numbers including 152832.5 while top internal category 'Electronics' is in focus and the latest projection/variance read vs plan. Present: **trim / do not add** (reduce high-beta now while internal variance is behind plan). Future: re-open **buy** scales only if next-quarter **projection** clears plan and **variance** flips ahead.",
+        "AAPL (Apple): hold (keep core quality; avoid size-up while variance is behind plan) \u2014 tie to internal numbers including -12829.5 cross-check against 'Home' demand mix and the latest projection/variance read vs plan. Present: **hold**; **no new buy** until variance to plan improves. Future: **buy** or **add** in the *next* quarter if forecast confidence widens and execution stabilizes.",
+        "JPM (JPMorgan): add (increase defensives / quality financials; reduce portfolio beta vs NVDA + AAPL) \u2014 tie to internal numbers including 101.1 and break-even path ~16.67 units in our operating model and the latest projection/variance read vs plan. Present: **buy / add** defensives to lower portfolio beta (execute now, static sleeve shift). Future: **hold** the defensive sleeve; re-check after **break-even** and plan variance improve."
+      ],
+      "issues": [],
+      "citations": [
+        "Electronics",
+        "Home",
+        "Sports"
+      ],
+      "memory_citations": [],
+      "memory_snippets": [],
+      "memo": null,
+      "score": null
+    }
+  }
+}

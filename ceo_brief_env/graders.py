@@ -10,6 +10,40 @@ _SCORE_MIN = 0.001
 _SCORE_MAX = 0.999
 
 
+# RAG+ mode: Stooq watchlist citations (see ``ceo_brief_env.stooq_scrape``).
+STOOQ_CITATION_PREFIX = "stooq:"
+STOOQ_CITATION_SUFFIXES = frozenset({"nvda.us", "aapl.us", "jpm.us"})
+
+
+def _citation_grounds(retriever_sources: set[str], c: str) -> bool:
+    if not isinstance(c, str) or not c:
+        return False
+    if c.startswith("memory:") and c[len("memory:") :] in retriever_sources:
+        return True
+    if c.startswith(STOOQ_CITATION_PREFIX):
+        rest = c[len(STOOQ_CITATION_PREFIX) :]
+        return rest in STOOQ_CITATION_SUFFIXES
+    return False
+
+
+def grounding_score(reports: Dict[str, ExpertReport]) -> float:
+    """Fraction of specialists with a resolvable ``memory:`` or ``stooq:`` citation (RAG on only)."""
+    if not reports:
+        return 0.0
+    try:
+        from memory import get_retriever
+    except Exception:
+        known_sources: set[str] = set()
+    else:
+        known_sources = set(get_retriever().sources())
+    grounded = 0
+    for report in reports.values():
+        cites = getattr(report, "memory_citations", []) or []
+        if any(_citation_grounds(known_sources, c) for c in cites):
+            grounded += 1
+    return grounded / max(len(reports), 1)
+
+
 def _clamp(score: float) -> float:
     return max(_SCORE_MIN, min(_SCORE_MAX, round(float(score), 4)))
 
@@ -69,6 +103,7 @@ def grade_episode(
     task_meta: Dict[str, object],
     brief: Brief,
     reports: Dict[str, ExpertReport],
+    use_rag: bool = False,
 ) -> float:
     required_experts = list(task_meta.get("required_experts", []))
     coverage = 0.0
@@ -85,20 +120,39 @@ def grade_episode(
     strategy_needed = "strategy" in required_experts
     strategy_score = 1.0 if not strategy_needed else strategy_rubric_score(brief.recommendations, evidence_numbers, analyst_cats)
 
-    weights = {
-        "coverage": 0.2,
-        "metrics": 0.5,
-        "hr": 0.15,
-        "strategy": 0.15,
-    }
-    if not strategy_needed:
-        weights["metrics"] += weights["strategy"]
-        weights["strategy"] = 0.0
-
-    total = (
-        weights["coverage"] * coverage
-        + weights["metrics"] * metric_score
-        + weights["hr"] * hr_score
-        + weights["strategy"] * strategy_score
-    )
+    if use_rag:
+        ground_score = grounding_score(reports)
+        weights = {
+            "coverage": 0.2,
+            "metrics": 0.40,
+            "hr": 0.15,
+            "strategy": 0.15,
+            "grounding": 0.10,
+        }
+        if not strategy_needed:
+            weights["metrics"] += weights["strategy"]
+            weights["strategy"] = 0.0
+        total = (
+            weights["coverage"] * coverage
+            + weights["metrics"] * metric_score
+            + weights["hr"] * hr_score
+            + weights["strategy"] * strategy_score
+            + weights["grounding"] * ground_score
+        )
+    else:
+        weights = {
+            "coverage": 0.2,
+            "metrics": 0.5,
+            "hr": 0.15,
+            "strategy": 0.15,
+        }
+        if not strategy_needed:
+            weights["metrics"] += weights["strategy"]
+            weights["strategy"] = 0.0
+        total = (
+            weights["coverage"] * coverage
+            + weights["metrics"] * metric_score
+            + weights["hr"] * hr_score
+            + weights["strategy"] * strategy_score
+        )
     return _clamp(total)

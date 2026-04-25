@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_observation
+from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_observation, required_experts_for_task
 from ceo_brief_env.models import CoSAction, CoSObservation
 
 app = FastAPI(title='AutoDataLab++', version='0.1.0')
@@ -28,6 +28,7 @@ app.mount('/ui', StaticFiles(directory=str(STATIC_DIR), html=True), name='ui')
 
 class ResetRequest(BaseModel):
     task: str = 'easy_brief'
+    use_rag: bool = False
 
 
 class StepRequest(BaseModel):
@@ -38,6 +39,7 @@ class StepRequest(BaseModel):
 class VisualizeRequest(BaseModel):
     task: str = 'easy_brief'
     policy: str = 'trained'
+    use_rag: bool = False
 
 
 @app.get('/')
@@ -52,17 +54,18 @@ def health() -> dict[str, str]:
 
 @app.get('/tasks')
 def tasks() -> dict[str, list[str]]:
-    return {'tasks': ['easy_brief', 'medium_brief', 'hard_brief']}
+    return {'tasks': ['easy_brief', 'medium_brief', 'hard_brief', 'expert_brief']}
 
 
 @app.post('/reset')
 def reset(req: ResetRequest) -> dict:
     env = CEOBriefEnvironment()
     episode_id = str(uuid4())
-    obs = env.reset(task=req.task, episode_id=episode_id)
+    obs = env.reset(task=req.task, episode_id=episode_id, use_rag=req.use_rag)
     SESSIONS[episode_id] = env
     payload = obs.model_dump()
     payload['episode_id'] = episode_id
+    payload['rag_enabled'] = bool(req.use_rag)
     return payload
 
 
@@ -90,10 +93,9 @@ def state(episode_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _single_baseline(obs: CoSObservation) -> CoSAction:
-    if 'analyst' not in obs.consulted_experts:
-        return CoSAction(action_type='consult', expert_id='analyst')
-    if 'hr' not in obs.consulted_experts:
-        return CoSAction(action_type='consult', expert_id='hr')
+    for e in required_experts_for_task(obs.task_name):
+        if e not in obs.consulted_experts:
+            return CoSAction(action_type='consult', expert_id=e)
     if obs.current_brief is None:
         return CoSAction(action_type='summarize')
     return CoSAction(action_type='submit')
@@ -110,7 +112,7 @@ def _roundrobin_baseline(obs: CoSObservation) -> CoSAction:
 
 def _trained_picker(obs: CoSObservation) -> CoSAction:
     # Lazy import so the server still works if torch/training pkg is missing.
-    from training.train_cos_local import ACTIONS, PolicyNet, featurize
+    from training.train_cos_local import ACTIONS, PolicyNet, featurize, load_policy_state_dict_from_file
     import torch
 
     model = _trained_picker._model  # type: ignore[attr-defined]
@@ -120,7 +122,10 @@ def _trained_picker(obs: CoSObservation) -> CoSAction:
             ckpt = REPO_ROOT / 'training' / 'checkpoints' / 'cos_ckpt0.pt'
         model = PolicyNet()
         if ckpt.exists():
-            model.load_state_dict(torch.load(ckpt, map_location='cpu'))
+            try:
+                load_policy_state_dict_from_file(model, ckpt)
+            except (OSError, RuntimeError, KeyError):
+                model = PolicyNet()
         model.eval()
         _trained_picker._model = model  # type: ignore[attr-defined]
     feats = torch.from_numpy(featurize(obs)).unsqueeze(0)
@@ -166,7 +171,7 @@ def task_meta(task: str = 'easy_brief') -> dict:
 def visualize_run(req: VisualizeRequest) -> dict:
     picker, label = _pick_policy(req.policy)
     env = CEOBriefEnvironment()
-    obs = env.reset(task=req.task)
+    obs = env.reset(task=req.task, use_rag=req.use_rag)
     instruction = obs.instruction
     max_steps = obs.max_steps
 
@@ -207,6 +212,7 @@ def visualize_run(req: VisualizeRequest) -> dict:
         'task': req.task,
         'policy': req.policy,
         'policy_label': label,
+        'rag_enabled': bool(req.use_rag),
         'instruction': instruction,
         'max_steps': max_steps,
         'steps': trace,

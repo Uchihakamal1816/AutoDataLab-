@@ -43,6 +43,23 @@
   .speed-wrap { display:flex; gap:6px; align-items:center; font-size:12px; color:var(--muted); }
   input[type=range] { width:110px; }
 
+  /* RAG toggle (checkbox) */
+  .rag-wrap { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); user-select:none; }
+  .rag-wrap input { position:absolute; opacity:0; width:0; height:0; }
+  .rag-ui {
+    position:relative; width:42px; height:22px; border-radius:999px; background:var(--panel2);
+    border:1px solid var(--border); transition: background .2s, border-color .2s; cursor:pointer;
+  }
+  .rag-ui::after {
+    content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:var(--muted); transition: transform .2s, background .2s;
+  }
+  .rag-wrap input:focus-visible + .rag-ui { box-shadow: var(--glow); }
+  .rag-wrap input:checked + .rag-ui { background:rgba(69,217,143,0.2); border-color:rgba(69,217,143,0.4); }
+  .rag-wrap input:checked + .rag-ui::after { transform: translateX(20px); background: var(--good); }
+  .rag-hint { font-size:11px; color:var(--muted); margin-top:6px; line-height:1.4; }
+  .rag-on .rag-hint { color:var(--good); }
+
   main {
     display:grid;
     grid-template-columns: minmax(0,1.35fr) minmax(320px,1fr);
@@ -184,7 +201,8 @@
     <select id="task">
       <option value="easy_brief">easy_brief</option>
       <option value="medium_brief">medium_brief</option>
-      <option value="hard_brief" selected>hard_brief</option>
+      <option value="hard_brief">hard_brief</option>
+      <option value="expert_brief" selected>expert_brief (full tools)</option>
     </select>
     <label class="tag" for="policy">Policy</label>
     <select id="policy">
@@ -197,6 +215,11 @@
       <span>speed</span>
       <input type="range" id="speed" min="200" max="2000" step="100" value="850" />
     </div>
+    <label class="rag-wrap" title="When on, experts retrieve SOPs/policies and the grader adds a small grounding head.">
+      <input type="checkbox" id="useRag" />
+      <span class="rag-ui" id="ragUi" aria-hidden="true"></span>
+      <span>RAG</span>
+    </label>
     <button id="run" class="primary">Run episode</button>
     <button id="reset">Reset</button>
   </div>
@@ -300,6 +323,11 @@
       </div>
     </div>
 
+    <div class="card" id="ragWikiCard" style="display:none;">
+      <h3>Company memory (RAG)</h3>
+      <p class="rag-hint" id="ragWikiHint">Experts ground answers in bundled SOPs, policies, and exemplar memos. Terminal grading includes a grounding component.</p>
+    </div>
+
     <div class="card">
       <h3>Step log</h3>
       <div class="log" id="log"></div>
@@ -353,6 +381,9 @@ function clearFloor() {
   $('stat-term').classList.remove('good','bad');
   $('bar-progress').style.width = '0%';
   $('bar-term').style.width = '0%';
+  const wiki = $('ragWikiCard');
+  if (wiki) wiki.style.display = $('useRag') && $('useRag').checked ? 'block' : 'none';
+  document.body.classList.toggle('rag-on', $('useRag') && $('useRag').checked);
 }
 
 function logLine(html, cls='') {
@@ -484,10 +515,11 @@ async function runEpisode() {
 
   let data;
   try {
+    const useRag = !!$('useRag').checked;
     const res = await fetch('/visualize/run', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ task, policy })
+      body: JSON.stringify({ task, policy, use_rag: useRag })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
@@ -499,7 +531,10 @@ async function runEpisode() {
 
   $('instruction').textContent = data.instruction + `  ·  policy: ${data.policy_label}`;
   setStatus('ceo', 'Briefed Chief of Staff. Watching…');
-  logLine(`<span class="ts">[START]</span> task=${data.task} policy=${data.policy_label} max_steps=${data.max_steps}`, 'step');
+  const ragOn = data.rag_enabled ? 'on' : 'off';
+  const wikiCard = $('ragWikiCard');
+  if (wikiCard) wikiCard.style.display = data.rag_enabled ? 'block' : 'none';
+  logLine(`<span class="ts">[START]</span> task=${data.task} policy=${data.policy_label} rag=${ragOn} max_steps=${data.max_steps}`, 'step');
 
   for (const step of data.steps) {
     $('stat-step').textContent = step.step;
@@ -557,6 +592,14 @@ window.addEventListener('load', () => {
   drawStaticWires();
   $('run').addEventListener('click', runEpisode);
   $('reset').addEventListener('click', clearFloor);
+  const ragCb = $('useRag');
+  if (ragCb) {
+    ragCb.addEventListener('change', () => {
+      document.body.classList.toggle('rag-on', ragCb.checked);
+      const w = $('ragWikiCard');
+      if (w) w.style.display = ragCb.checked ? 'block' : 'none';
+    });
+  }
   window.addEventListener('resize', drawStaticWires);
 });
 </script>

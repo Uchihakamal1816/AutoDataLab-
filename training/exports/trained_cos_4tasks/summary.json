@@ -1,0 +1,33 @@
+{
+  "policy_label": "trained-cos",
+  "use_rag": false,
+  "checkpoint_load": "ok",
+  "tasks": {
+    "easy_brief": {
+      "terminal_score": 0.5207,
+      "success": true,
+      "steps": 8,
+      "cumulative_reward": 0.4307
+    },
+    "medium_brief": {
+      "terminal_score": 0.6229,
+      "success": true,
+      "steps": 10,
+      "cumulative_reward": 0.5129
+    },
+    "hard_brief": {
+      "terminal_score": 0.6185,
+      "success": true,
+      "steps": 12,
+      "cumulative_reward": 0.4085
+    },
+    "expert_brief": {
+      "terminal_score": 0.683,
+      "success": true,
+      "steps": 14,
+      "cumulative_reward": 0.443
+    }
+  },
+  "mean_terminal": 0.6113,
+  "export_dir": "/home/uchihakamal/Desktop/hackathon/round-2/autodatalab-plus/training/exports/trained_cos_4tasks"
+}
