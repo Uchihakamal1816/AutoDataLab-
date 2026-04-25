@@ -8,3 +8,11 @@ cache/
 .env.local
 .~lock.*
 *.egg-info/
+
+# Local training outputs and generated SFT data (not shipped to GitHub)
+results/
+train_results/
+training/sft_data/
+
+# Standalone / GPU evaluation Spaces live outside the core environment package
+spaces/
