@@ -203,12 +203,17 @@ def _load_llm(base_model_id: str, adapter_id: Optional[str], adapter_subfolder: 
     return tok, model
 
 
-def _make_llm_picker(tok, model, CoSAction, max_new_tokens: int = 96):
-    """Returns a CoS picker that asks the LLM, parses JSON, falls back to noop."""
+def _action_label(action) -> str:
+    if action.action_type in {"consult", "ask"}:
+        return f"{action.action_type}:{action.expert_id or 'null'}"
+    return action.action_type
+
+
+def _generate_action_and_text(tok, model, CoSAction, obs, max_new_tokens: int = 96):
+    """Ask the LLM for one CoS action and keep the raw completion for evidence."""
     import torch
 
-    @torch.no_grad()
-    def picker(obs):
+    with torch.no_grad():
         msgs = [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": _render_obs(obs)},
@@ -222,13 +227,21 @@ def _make_llm_picker(tok, model, CoSAction, max_new_tokens: int = 96):
             **ids,
             max_new_tokens=max_new_tokens,
             do_sample=False,
-            temperature=0.0,
-            top_p=1.0,
-            top_k=0,
             pad_token_id=tok.pad_token_id or tok.eos_token_id,
         )
         text = tok.decode(out[0][ids["input_ids"].shape[1]:], skip_special_tokens=True)
-        return _parse_action(text, CoSAction)
+        action = _parse_action(text, CoSAction)
+        return action, text.strip()
+
+
+def _make_llm_picker(tok, model, CoSAction, max_new_tokens: int = 96):
+    """Returns a CoS picker that asks the LLM, parses JSON, falls back to noop."""
+
+    def picker(obs):
+        action, _completion = _generate_action_and_text(
+            tok, model, CoSAction, obs, max_new_tokens=max_new_tokens
+        )
+        return action
 
     return picker
 
@@ -247,6 +260,34 @@ def _format_episode(data: dict) -> str:
     inst = data.get("final_instruction") or ""
     if inst:
         out += [sep, "INSTRUCTION (from metadata)", sep, inst, ""]
+
+    policy_trace = data.get("policy_trace") or []
+    fallback_trace = data.get("fallback_trace") or []
+    if policy_trace:
+        out += [sep, "TRAINING EVIDENCE — MODEL-CONTROLLED POLICY TRAJECTORY", sep]
+        out.append(
+            "These are the actions chosen directly by the LLM/adapter before any "
+            "deterministic completion logic. This is the part to compare across "
+            "base vs SFT vs GRPO."
+        )
+        for row in policy_trace:
+            out.append(
+                f"  step {row['step']:02d} | action={row['action_label']:<18} "
+                f"reward={row['reward']:+.4f} done={row['done']} "
+                f"consulted={row['consulted_after']}"
+            )
+            preview = str(row.get("completion_preview") or "").replace("\n", " ")
+            if preview:
+                out.append(f"       raw: {preview}")
+        if fallback_trace:
+            out.append(
+                "\nFallback used after model-controlled steps to complete the report "
+                "for qualitative comparison:"
+            )
+            out.append(
+                "  " + " -> ".join(row["action_label"] for row in fallback_trace)
+            )
+        out.append("")
 
     reports: dict = data.get("expert_reports") or {}
     order = ("analyst", "finance", "strategy", "hr")
@@ -300,6 +341,201 @@ def _run(picker, label: str, task: str, use_rag: bool) -> dict:
     return run_episode_collect(task, picker, label, use_rag=use_rag, quiet=True)
 
 
+def _deterministic_next_action(obs, task: str, required_experts_for_task, CoSAction):
+    missing = [e for e in required_experts_for_task(task) if e not in obs.consulted_experts]
+    if missing:
+        return CoSAction(action_type="consult", expert_id=missing[0])
+    if obs.current_brief is None:
+        return CoSAction(action_type="summarize")
+    return CoSAction(action_type="submit")
+
+
+def _run_with_policy_trace(
+    tok,
+    model,
+    CoSAction,
+    CEOBriefEnvironment,
+    required_experts_for_task,
+    *,
+    label: str,
+    task: str,
+    use_rag: bool,
+    max_new_tokens: int,
+    policy_steps: int,
+    shaping: str,
+) -> dict:
+    """Run N model-controlled steps, then fallback only to finish the report.
+
+    This exposes the actual learned policy behavior. The final expert reports are
+    still included so you can quote agent answers in the presentation.
+    """
+    env = CEOBriefEnvironment(shaping=shaping)
+    obs = env.reset(task=task, use_rag=use_rag)
+    rewards: list[float] = []
+    policy_trace: list[dict[str, Any]] = []
+    fallback_trace: list[dict[str, Any]] = []
+
+    for _ in range(max(1, policy_steps)):
+        if obs.done:
+            break
+        before_consulted = list(obs.consulted_experts)
+        action, completion = _generate_action_and_text(
+            tok, model, CoSAction, obs, max_new_tokens=max_new_tokens
+        )
+        obs = env.step(action)
+        rewards.append(float(obs.reward))
+        policy_trace.append(
+            {
+                "step": obs.step_count,
+                "obs_before_consulted": before_consulted,
+                "action": action.model_dump(exclude_none=True),
+                "action_label": _action_label(action),
+                "completion_preview": completion[:400],
+                "reward": round(float(obs.reward), 4),
+                "done": bool(obs.done),
+                "consulted_after": list(obs.consulted_experts),
+            }
+        )
+
+    while not obs.done and obs.step_count < obs.max_steps:
+        action = _deterministic_next_action(obs, task, required_experts_for_task, CoSAction)
+        obs = env.step(action)
+        rewards.append(float(obs.reward))
+        fallback_trace.append(
+            {
+                "step": obs.step_count,
+                "action": action.model_dump(exclude_none=True),
+                "action_label": _action_label(action),
+                "reward": round(float(obs.reward), 4),
+                "done": bool(obs.done),
+                "consulted_after": list(obs.consulted_experts),
+            }
+        )
+
+    action_sequence = [row["action_label"] for row in policy_trace]
+    required = required_experts_for_task(task)
+    policy_covered_required = [
+        e
+        for e in required
+        if any(row["action"].get("expert_id") == e for row in policy_trace)
+    ]
+    data = {
+        "task": task,
+        "policy_label": label,
+        "use_rag": use_rag,
+        "shaping": shaping,
+        "success": bool((obs.terminal_grader_score or 0.0) >= 0.5),
+        "steps": int(obs.step_count),
+        "terminal_score": round(float(obs.terminal_grader_score or 0.0), 4),
+        "cumulative_reward": round(sum(rewards), 4),
+        "step_rewards": [round(x, 4) for x in rewards],
+        "final_instruction": obs.instruction,
+        "task_difficulty": obs.task_difficulty,
+        "max_steps": obs.max_steps,
+        "consulted_experts": list(obs.consulted_experts),
+        "current_brief": obs.current_brief.model_dump() if obs.current_brief is not None else None,
+        "expert_reports": {k: v.model_dump() for k, v in obs.expert_reports.items()},
+        "policy_trace": policy_trace,
+        "fallback_trace": fallback_trace,
+        "policy_evidence": {
+            "model_controlled_steps": len(policy_trace),
+            "action_sequence": action_sequence,
+            "unique_actions": len(set(action_sequence)),
+            "covered_required_experts_in_policy_steps": policy_covered_required,
+            "required_experts": required,
+            "needed_fallback": bool(fallback_trace),
+            "fallback_steps": len(fallback_trace),
+            "policy_reward_sum": round(sum(row["reward"] for row in policy_trace), 4),
+            "total_reward_sum": round(sum(rewards), 4),
+        },
+    }
+    return data
+
+
+def _write_evidence_artifacts(out_dir: Path, rows: list[dict[str, Any]], task: str) -> None:
+    """Save compact JSON/CSV/Markdown and a reward plot for presentation use."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    summary = []
+    for row in rows:
+        ev = row.get("policy_evidence") or {}
+        summary.append(
+            {
+                "policy": row.get("policy_label"),
+                "task": row.get("task"),
+                "action_sequence": " -> ".join(ev.get("action_sequence") or []),
+                "covered_required": ",".join(ev.get("covered_required_experts_in_policy_steps") or []),
+                "needed_fallback": ev.get("needed_fallback"),
+                "policy_reward_sum": ev.get("policy_reward_sum"),
+                "total_reward_sum": ev.get("total_reward_sum"),
+                "terminal_score": row.get("terminal_score"),
+                "steps": row.get("steps"),
+            }
+        )
+    (out_dir / f"training_evidence__{task}.json").write_text(
+        json.dumps(summary, indent=2, default=str), encoding="utf-8"
+    )
+    csv_lines = [
+        "policy,task,action_sequence,covered_required,needed_fallback,policy_reward_sum,total_reward_sum,terminal_score,steps"
+    ]
+    for item in summary:
+        csv_lines.append(
+            ",".join(
+                json.dumps(str(item[k])) if k in {"action_sequence", "covered_required"} else str(item[k])
+                for k in [
+                    "policy",
+                    "task",
+                    "action_sequence",
+                    "covered_required",
+                    "needed_fallback",
+                    "policy_reward_sum",
+                    "total_reward_sum",
+                    "terminal_score",
+                    "steps",
+                ]
+            )
+        )
+    (out_dir / f"training_evidence__{task}.csv").write_text("\n".join(csv_lines), encoding="utf-8")
+    md = [
+        "# Training Evidence",
+        "",
+        "| Policy | Model-controlled action sequence | Required experts covered | Needed fallback | Policy reward | Final score |",
+        "|---|---|---|---:|---:|---:|",
+    ]
+    for item in summary:
+        md.append(
+            f"| {item['policy']} | `{item['action_sequence']}` | "
+            f"{item['covered_required'] or '-'} | {item['needed_fallback']} | "
+            f"{item['policy_reward_sum']} | {item['terminal_score']} |"
+        )
+    (out_dir / f"training_evidence__{task}.md").write_text("\n".join(md), encoding="utf-8")
+
+    try:
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(8, 4))
+        for row in rows:
+            rewards = row.get("step_rewards") or []
+            if not rewards:
+                continue
+            xs = list(range(1, len(rewards) + 1))
+            cum = []
+            total = 0.0
+            for r in rewards:
+                total += float(r)
+                cum.append(total)
+            plt.plot(xs, cum, marker="o", label=str(row.get("policy_label")))
+        plt.xlabel("environment step")
+        plt.ylabel("cumulative reward")
+        plt.title(f"Training evidence: policy trajectories on {task}")
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(out_dir / f"training_evidence_curve__{task}.png", dpi=160)
+        plt.close()
+    except Exception as e:
+        print(f"[plot] skipped evidence curve: {e}", flush=True)
+
+
 # ---------- Main ----------
 
 
@@ -314,6 +550,18 @@ def main() -> int:
     p.add_argument("--grpo-subfolder", default=DEFAULTS["grpo_subfolder"])
     p.add_argument("--no-4bit", action="store_true", help="disable 4-bit (fallback to bf16)")
     p.add_argument("--max-new-tokens", type=int, default=DEFAULTS["max_new_tokens"])
+    p.add_argument(
+        "--policy-steps",
+        type=int,
+        default=6,
+        help="number of model-controlled CoS steps before deterministic fallback",
+    )
+    p.add_argument(
+        "--shaping",
+        choices=("default", "strict"),
+        default="default",
+        help="env reward shaping for evidence run; strict makes lazy policies obvious",
+    )
     p.add_argument("--hf-token", default=os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN") or "")
     p.add_argument("--out-dir", type=Path, default=Path("/kaggle/working/three_llms_text") if Path("/kaggle/working").is_dir() else Path("./three_llms_text"))
     args = p.parse_args()
@@ -336,6 +584,7 @@ def main() -> int:
     ]
 
     big_sep = "#" * 88
+    evidence_rows: list[dict[str, Any]] = []
     for label, base_id, adapter_id, sub in runs:
         print(f"\n{big_sep}\n# RUN: {label}\n# base={base_id}\n# adapter={adapter_id or '(none)'}{(' subfolder='+sub) if sub else ''}\n{big_sep}", flush=True)
         try:
@@ -350,9 +599,20 @@ def main() -> int:
             print(f"[load failed for {label}] {e}", flush=True)
             continue
 
-        picker = _make_llm_picker(tok, model, CoSAction, max_new_tokens=args.max_new_tokens)
         try:
-            data = _run(picker, label, args.task, args.use_rag)
+            data = _run_with_policy_trace(
+                tok,
+                model,
+                CoSAction,
+                CEOBriefEnvironment,
+                required_experts_for_task,
+                label=label,
+                task=args.task,
+                use_rag=args.use_rag,
+                max_new_tokens=args.max_new_tokens,
+                policy_steps=args.policy_steps,
+                shaping=args.shaping,
+            )
         except Exception as e:
             print(f"[episode failed for {label}] {e}", flush=True)
             continue
@@ -371,6 +631,15 @@ def main() -> int:
         out_path = args.out_dir / f"{label}__{args.task}.json"
         out_path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
         print(f"[saved] {out_path}", flush=True)
+        evidence_rows.append(data)
+
+    if evidence_rows:
+        _write_evidence_artifacts(args.out_dir, evidence_rows, args.task)
+        print(
+            f"[saved] training evidence artifacts under {args.out_dir} "
+            f"(json/csv/md/png)",
+            flush=True,
+        )
 
     return 0
 
