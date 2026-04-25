@@ -1,7 +1,9 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
-
+# Production runtime deps only. The training notebook (training/cos_grpo_colab.ipynb)
+# runs on Colab where torch is pre-installed. To run training locally:
+#   pip install torch>=2.0.0
 [project]
 name = "autodatalab-plus"
 version = "0.1.0"
@@ -17,14 +19,11 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "openenv-core[core]>=0.2.2",
 ]
-
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2.0",
 ]
-training = [
-    "torch>=2.0.0",
-]
+
 [project.scripts]
 server = "server.app:main"
 autodatalab-plus-server = "server.app:main"
