@@ -1,3 +1,12 @@
+---
+title: AutoDataLab Plus Plus
+emoji: 🏢
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
 # AutoDataLab++
 
 OpenEnv **multi-agent** environment: a **Chief of Staff** routes work across **Data Analyst**, **Finance**, **Strategy**, and **HR** to complete CEO briefing tasks. Includes optional **REINFORCE** training for the CoS and a **FastAPI** server with an **office UI** at `/ui/`.
