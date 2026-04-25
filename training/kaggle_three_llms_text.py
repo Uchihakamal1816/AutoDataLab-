@@ -51,6 +51,7 @@ DEFAULTS = {
     "grpo_subfolder": "final",
     "use_4bit": True,
     "max_new_tokens": 96,
+    "shaping": "strict",
 }
 
 # ---------- Env imports (deferred so --help works without deps) ----------
@@ -183,6 +184,16 @@ def _load_llm(base_model_id: str, adapter_id: Optional[str], adapter_subfolder: 
             print(f"[load] warn: resize_token_embeddings failed: {e}", flush=True)
 
     model.eval()
+    # Greedy generation; clear sampling defaults from model generation_config to
+    # avoid noisy warnings (`temperature/top_p/top_k` are ignored when
+    # do_sample=False).
+    try:
+        model.generation_config.do_sample = False
+        model.generation_config.temperature = None
+        model.generation_config.top_p = None
+        model.generation_config.top_k = None
+    except Exception:
+        pass
 
     if adapter_id:
         from peft import PeftModel
@@ -264,7 +275,7 @@ def _format_episode(data: dict) -> str:
     policy_trace = data.get("policy_trace") or []
     fallback_trace = data.get("fallback_trace") or []
     if policy_trace:
-        out += [sep, "TRAINING EVIDENCE — MODEL-CONTROLLED POLICY TRAJECTORY", sep]
+        out += [sep, "TRAINING EVIDENCE - MODEL-CONTROLLED POLICY TRAJECTORY", sep]
         out.append(
             "These are the actions chosen directly by the LLM/adapter before any "
             "deterministic completion logic. This is the part to compare across "
@@ -274,7 +285,8 @@ def _format_episode(data: dict) -> str:
             out.append(
                 f"  step {row['step']:02d} | action={row['action_label']:<18} "
                 f"reward={row['reward']:+.4f} done={row['done']} "
-                f"consulted={row['consulted_after']}"
+                f"model_routed={row['model_routed_required']} "
+                f"env_consulted={row['consulted_after']}"
             )
             preview = str(row.get("completion_preview") or "").replace("\n", " ")
             if preview:
@@ -369,11 +381,13 @@ def _run_with_policy_trace(
     This exposes the actual learned policy behavior. The final expert reports are
     still included so you can quote agent answers in the presentation.
     """
-    env = CEOBriefEnvironment(shaping=shaping)
+    env = CEOBriefEnvironment(shaping=shaping, auto_fill_required=False)
     obs = env.reset(task=task, use_rag=use_rag)
     rewards: list[float] = []
     policy_trace: list[dict[str, Any]] = []
     fallback_trace: list[dict[str, Any]] = []
+    required = required_experts_for_task(task)
+    model_routed_required: list[str] = []
 
     for _ in range(max(1, policy_steps)):
         if obs.done:
@@ -383,6 +397,8 @@ def _run_with_policy_trace(
             tok, model, CoSAction, obs, max_new_tokens=max_new_tokens
         )
         obs = env.step(action)
+        if action.expert_id in required and action.expert_id not in model_routed_required:
+            model_routed_required.append(action.expert_id)
         rewards.append(float(obs.reward))
         policy_trace.append(
             {
@@ -394,6 +410,7 @@ def _run_with_policy_trace(
                 "reward": round(float(obs.reward), 4),
                 "done": bool(obs.done),
                 "consulted_after": list(obs.consulted_experts),
+                "model_routed_required": list(model_routed_required),
             }
         )
 
@@ -413,12 +430,7 @@ def _run_with_policy_trace(
         )
 
     action_sequence = [row["action_label"] for row in policy_trace]
-    required = required_experts_for_task(task)
-    policy_covered_required = [
-        e
-        for e in required
-        if any(row["action"].get("expert_id") == e for row in policy_trace)
-    ]
+    policy_covered_required = list(model_routed_required)
     data = {
         "task": task,
         "policy_label": label,
@@ -559,7 +571,7 @@ def main() -> int:
     p.add_argument(
         "--shaping",
         choices=("default", "strict"),
-        default="default",
+        default=DEFAULTS["shaping"],
         help="env reward shaping for evidence run; strict makes lazy policies obvious",
     )
     p.add_argument("--hf-token", default=os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN") or "")

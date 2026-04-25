@@ -29,7 +29,7 @@ def required_experts_for_task(task_name: str) -> list[str]:
 
 
 class CEOBriefEnvironment:
-    def __init__(self, shaping: str = "default") -> None:
+    def __init__(self, shaping: str = "default", auto_fill_required: bool = True) -> None:
         """Multi-agent CEO-brief env.
 
         ``shaping`` controls the dense per-step reward. The terminal grader is
@@ -43,6 +43,11 @@ class CEOBriefEnvironment:
           summarizing before required experts have reported. Use for new
           GRPO/REINFORCE runs to discourage "summarize-spam -> submit" lazy
           policies.
+
+        ``auto_fill_required`` keeps the production/demo environment robust by
+        filling any missing required experts before composing or grading. Turn
+        it off only for policy-evidence runs where we want to observe what the
+        LLM actually routed by itself.
         """
         self.analyst = DataAnalystExpert()
         self.finance = FinanceExpert()
@@ -50,6 +55,7 @@ class CEOBriefEnvironment:
         self.strategy = StrategyExpert()
         self.use_rag = False
         self.shaping = shaping if shaping in {"default", "strict"} else "default"
+        self.auto_fill_required = auto_fill_required
         self.reset()
 
     def reset(self, task: str = 'easy_brief', episode_id: str | None = None, use_rag: bool = False) -> CoSObservation:
@@ -177,6 +183,8 @@ class CEOBriefEnvironment:
         contributes to the brief, so the UI / grader always has their report.
         Returns the list of expert ids that were auto-filled.
         """
+        if not self.auto_fill_required:
+            return []
         auto: list[str] = []
         for expert_id in required_experts_for_task(self.task_name):
             if expert_id in self.expert_reports:
