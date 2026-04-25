@@ -370,6 +370,15 @@ def train_candidate_rl(args, out_dir: Path) -> Path:
                 clipped = torch.clamp(ratio, 1.0 - args.ppo_clip, 1.0 + args.ppo_clip)
                 loss = -torch.minimum(ratio * adv.detach(), clipped * adv.detach()).mean()
 
+            if args.sft_anchor > 0:
+                oracle = oracle_action_for_observation(obs)
+                oracle_s = action_json(oracle)
+                oracle_logp = sequence_logprob(model, tok, prompt, oracle_s, args.max_length)
+                # Positive anchor: keep the known-good routing behavior while
+                # RL nudges preferences. This is critical when continuing from
+                # an already-good SFT/DPO adapter.
+                loss = loss - args.sft_anchor * oracle_logp
+
             loss = loss / args.grad_accum
             loss.backward()
             if i % args.grad_accum == 0:
@@ -573,6 +582,21 @@ def evaluate(args, adapter_dir: Path, eval_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def evidence_score(rows: list[dict[str, Any]]) -> float:
+    """Single scalar for quick continue/skip decisions."""
+    if not rows:
+        return -999.0
+    vals = []
+    for row in rows:
+        required = set(row.get("required_experts") or [])
+        routed = set(row.get("model_routed_required") or [])
+        coverage = len(required & routed) / max(len(required), 1)
+        no_fallback = 1.0 if not row.get("needed_fallback") else 0.0
+        policy_reward = float(row.get("policy_reward") or 0.0)
+        vals.append(coverage + no_fallback + 0.1 * policy_reward)
+    return sum(vals) / len(vals)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--method", choices=("grpo", "grpo_rlvr", "ppo"), required=True)
@@ -583,7 +607,12 @@ def main() -> int:
     ap.add_argument("--hf-token", default=os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN") or "")
     ap.add_argument("--no-4bit", action="store_true")
     ap.add_argument("--epochs", type=int, default=1)
-    ap.add_argument("--lr", type=float, default=5e-5)
+    ap.add_argument(
+        "--lr",
+        type=float,
+        default=5e-6,
+        help="conservative default; higher LR can collapse a good SFT/DPO adapter to noop",
+    )
     ap.add_argument("--grad-accum", type=int, default=4)
     ap.add_argument("--max-length", type=int, default=1024)
     ap.add_argument("--variants", type=int, default=2)
@@ -591,6 +620,12 @@ def main() -> int:
     ap.add_argument("--log-every", type=int, default=5)
     ap.add_argument("--max-grad-norm", type=float, default=0.3)
     ap.add_argument("--ppo-clip", type=float, default=0.2)
+    ap.add_argument(
+        "--sft-anchor",
+        type=float,
+        default=0.2,
+        help="oracle logprob anchor; keep >0 when continuing from a good SFT/DPO adapter",
+    )
     ap.add_argument("--lora-r", type=int, default=16)
     ap.add_argument("--lora-alpha", type=int, default=32)
     ap.add_argument("--policy-steps", type=int, default=6)
@@ -608,8 +643,16 @@ def main() -> int:
     (out_dir / "config.json").write_text(json.dumps(vars(args), indent=2, default=str), encoding="utf-8")
     print(f"[run] {run_name} -> {out_dir}", flush=True)
 
+    before_rows = []
+    if args.init_adapter:
+        print("[baseline] evaluating init adapter before RL...", flush=True)
+        before_rows = evaluate(args, Path(args.init_adapter), out_dir / "eval_before")
+        print(f"[baseline] evidence_score={evidence_score(before_rows):.4f}", flush=True)
+
     adapter_dir = train_candidate_rl(args, out_dir)
     rows = evaluate(args, adapter_dir, out_dir / "eval")
+    after_score = evidence_score(rows)
+    before_score = evidence_score(before_rows) if before_rows else None
     print("\n=== RL EVIDENCE SUMMARY ===", flush=True)
     for row in rows:
         print(
@@ -618,6 +661,19 @@ def main() -> int:
             f"policy_reward={row['policy_reward']} terminal={row['terminal_score']}",
             flush=True,
         )
+    print(f"\n[evidence_score] after={after_score:.4f}", flush=True)
+    if before_score is not None:
+        print(f"[evidence_score] before={before_score:.4f}", flush=True)
+        if after_score + 1e-6 < before_score:
+            print(
+                "[decision] SKIP this RL adapter: it regressed versus the init adapter.",
+                flush=True,
+            )
+        else:
+            print(
+                "[decision] KEEP this RL adapter: it matched or improved the init adapter.",
+                flush=True,
+            )
     print(f"\n[adapter] {adapter_dir}", flush=True)
     print(f"[eval] {out_dir / 'eval'}", flush=True)
     return 0
