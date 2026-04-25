@@ -32,6 +32,12 @@
   }
   header h1 { margin:0; font-size:18px; letter-spacing:0.3px; }
   header .tag { color:var(--muted); font-size:12px; }
+  header { flex-wrap:wrap; }
+  .task-hint {
+    flex:1 0 100%;
+    margin:0; padding:2px 22px 10px 22px;
+    font-size:12px; color:var(--muted); line-height:1.5;
+  }
   .controls { margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   select, button {
     background:var(--panel); color:var(--ink); border:1px solid var(--border);
@@ -198,11 +204,17 @@
   </div>
   <div class="controls">
     <label class="tag" for="task">Task</label>
-    <select id="task">
-      <option value="easy_brief">easy_brief</option>
-      <option value="medium_brief">medium_brief</option>
-      <option value="hard_brief">hard_brief</option>
-      <option value="expert_brief" selected>expert_brief (full tools)</option>
+    <select id="task" aria-describedby="taskHint">
+      <optgroup label="Core (no strategy required)">
+        <option value="easy_brief">easy_brief — analyst + finance + HR</option>
+      </optgroup>
+      <optgroup label="Strategist on critical path (5 tasks)">
+        <option value="medium_brief">medium_brief — four-expert stack</option>
+        <option value="hard_brief">hard_brief — full office + tape</option>
+        <option value="expert_brief" selected>expert_brief — all tools + expert stack</option>
+        <option value="risk_brief">risk_brief — audit / risk board</option>
+        <option value="crisis_brief">crisis_brief — mid-quarter shock</option>
+      </optgroup>
     </select>
     <label class="tag" for="policy">Policy</label>
     <select id="policy">
@@ -223,6 +235,7 @@
     <button id="run" class="primary">Run episode</button>
     <button id="reset">Reset</button>
   </div>
+  <p id="taskHint" class="task-hint"></p>
 </header>
 
 <main>
@@ -323,9 +336,26 @@
       </div>
     </div>
 
+    <div class="card" id="taskMapCard">
+      <h3>Strategist coverage (6 tasks)</h3>
+      <p class="tag" style="line-height:1.55;">
+        <strong>Five</strong> scenarios put Strategy on the critical path (medium, hard, expert, risk, crisis). <strong>Easy</strong> does not. After each run, the <strong>Strategy ideas</strong> card fills from the final strategist report: watchlist stances, Present/Future, bullets, and tape (bundled long CSV if RAG is off; Stooq + memory if RAG is on).
+      </p>
+      <p class="tag" style="margin-top:6px; color:var(--accent);">
+        Demo focus (excluding easy + medium): <strong>hard</strong> · <strong>expert</strong> · <strong>risk</strong> · <strong>crisis</strong> — all four show strategist + tape in the panel when the CoS consults strategy.
+      </p>
+    </div>
+
     <div class="card" id="ragWikiCard" style="display:none;">
       <h3>Company memory (RAG)</h3>
       <p class="rag-hint" id="ragWikiHint">Experts ground answers in bundled SOPs, policies, and exemplar memos. Terminal grading includes a grounding component.</p>
+    </div>
+
+    <div class="card" id="strategyCard" style="display:none;">
+      <h3>Strategy ideas (NVDA · AAPL · JPM)</h3>
+      <div id="strategyBody" class="brief-body">
+        <span class="tag">Strategy hasn't been consulted yet.</span>
+      </div>
     </div>
 
     <div class="card">
@@ -349,6 +379,11 @@
 <script>
 const EXPERT_IDS = ['analyst', 'finance', 'strategy', 'hr'];
 const ACTION_EMOJI = { consult: '📩', ask: '❓', summarize: '📝', submit: '✅', noop: '…' };
+
+/** Tasks where strategy is required for a full grade (everyone except easy_brief). */
+const TASK_REQUIRES_STRATEGY = new Set(['medium_brief', 'hard_brief', 'expert_brief', 'risk_brief', 'crisis_brief']);
+/** “Excluding easy + medium” showcase: strategist + tape in the side panel (3+ tasks). */
+const TASK_STRATEGY_DEMO_FOCUS = new Set(['hard_brief', 'expert_brief', 'risk_brief', 'crisis_brief']);
 
 const $ = (id) => document.getElementById(id);
 const log = $('log');
@@ -384,6 +419,108 @@ function clearFloor() {
   const wiki = $('ragWikiCard');
   if (wiki) wiki.style.display = $('useRag') && $('useRag').checked ? 'block' : 'none';
   document.body.classList.toggle('rag-on', $('useRag') && $('useRag').checked);
+  const sCard = $('strategyCard');
+  const sBody = $('strategyBody');
+  if (sCard) sCard.style.display = 'none';
+  if (sBody) sBody.innerHTML = '<span class="tag">Strategy hasn\'t been consulted yet.</span>';
+  updateTaskHint();
+}
+
+const STANCE_COLOR = {
+  buy_more: 'var(--good)', buy: 'var(--good)', add: 'var(--good)',
+  hold: 'var(--muted)',
+  reduce: 'var(--warn)', trim: 'var(--warn)',
+  sell: 'var(--bad)', none: 'var(--muted)'
+};
+function stancePill(v) {
+  const t = String(v || '').toLowerCase();
+  const color = STANCE_COLOR[t] || 'var(--muted)';
+  return `<span class="chip" style="color:${color};border-color:${color}33;background:transparent">${t || '—'}</span>`;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderStrategyIdeas(report, options) {
+  const opts = options || {};
+  const showTape = opts.showTape !== false;
+  const card = $('strategyCard');
+  const body = $('strategyBody');
+  if (!card || !body || !report || !report.metrics) return;
+  const m = report.metrics;
+  const tickers = ['nvda', 'aapl', 'jpm'];
+  const labels  = { nvda: 'NVDA · NVIDIA', aapl: 'AAPL · Apple', jpm: 'JPM · JPMorgan' };
+  const rows = tickers.map(t => `
+    <div class="kv">
+      <span class="k">${labels[t]}</span>
+      <span>
+        ${stancePill(m[t])}
+        <span class="tag" style="margin:0 4px;color:var(--muted);font-size:10px">P:</span>${stancePill(m[t + '_present'])}
+        <span class="tag" style="margin:0 4px;color:var(--muted);font-size:10px">F:</span>${stancePill(m[t + '_future'])}
+      </span>
+    </div>
+  `).join('');
+  const bullets = (report.bullet_points || []).slice(0, 3)
+    .map(b => `<li>${escapeHtml(b)}</li>`).join('');
+  const cites = report.memory_citations || [];
+  const snips = report.memory_snippets || [];
+  const n = Math.min(cites.length, snips.length, 8);
+  const tapeRows = [];
+  for (let i = 0; i < n; i++) {
+    tapeRows.push(
+      `<div class="kv" style="align-items:flex-start;"><span class="k" style="max-width:38%;word-break:break-all;">${escapeHtml(cites[i])}</span><span style="font-size:11px;line-height:1.45;">${escapeHtml(snips[i])}</span></div>`
+    );
+  }
+  const tapeBlock = (showTape && tapeRows.length)
+    ? `<div style="margin-top:10px;"><div class="tag">Tape &amp; citations (strategist)</div>${tapeRows.join('')}</div>`
+    : '';
+  body.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">${escapeHtml(report.summary || '')}</div>
+    ${rows}
+    ${bullets ? `<div style="margin-top:8px;"><div class="tag">Bullets</div><ul>${bullets}</ul></div>` : ''}
+    ${tapeBlock}
+  `;
+  card.style.display = 'block';
+}
+
+function finalizeStrategyPanel(data) {
+  const st = data.expert_reports && data.expert_reports.strategy;
+  const task = data.task;
+  const body = $('strategyBody');
+  const card = $('strategyCard');
+  if (!body || !card) return;
+  if (st) {
+    renderStrategyIdeas(st, { showTape: true });
+    return;
+  }
+  if (TASK_REQUIRES_STRATEGY.has(task)) {
+    body.innerHTML = '<span class="tag" style="color:var(--warn)">This task requires a strategist report for grading, but the policy did not produce one in this run. Try <strong>oracle</strong>, <strong>round-robin</strong>, or <strong>trained</strong> policy.</span>';
+    card.style.display = 'block';
+  } else {
+    body.innerHTML = '<span class="tag">Strategist not on the required path for <code>easy_brief</code>; the policy did not consult it this run.</span>';
+    card.style.display = 'block';
+  }
+}
+
+function updateTaskHint() {
+  const t = $('task') && $('task').value;
+  const el = $('taskHint');
+  if (!el) return;
+  if (t === 'easy_brief') {
+    el.textContent = 'Strategist is not required here (analyst → finance → HR). The strategy panel will note that after the run.';
+  } else if (TASK_STRATEGY_DEMO_FOCUS.has(t)) {
+    el.textContent = 'Strategist required: after the run, the side panel shows watchlist stances (P/F), bullets, and full tape row (long CSV or Stooq+RAG).';
+  } else if (TASK_REQUIRES_STRATEGY.has(t)) {
+    el.textContent = 'Strategist is on the critical path; the side panel shows outputs when the CoS consults strategy.';
+  } else {
+    el.textContent = '';
+  }
 }
 
 function logLine(html, cls='') {
@@ -536,6 +673,15 @@ async function runEpisode() {
   if (wikiCard) wikiCard.style.display = data.rag_enabled ? 'block' : 'none';
   logLine(`<span class="ts">[START]</span> task=${data.task} policy=${data.policy_label} rag=${ragOn} max_steps=${data.max_steps}`, 'step');
 
+  if (TASK_REQUIRES_STRATEGY.has(data.task)) {
+    const sCard = $('strategyCard');
+    const sBody = $('strategyBody');
+    if (sCard && sBody) {
+      sCard.style.display = 'block';
+      sBody.innerHTML = '<span class="tag">Awaiting strategist consult… (panel will populate when the CoS routes work to strategy)</span>';
+    }
+  }
+
   for (const step of data.steps) {
     $('stat-step').textContent = step.step;
     $('stat-cum').textContent = step.cumulative_reward.toFixed(2);
@@ -557,6 +703,7 @@ async function runEpisode() {
       if (report) {
         const chips = renderReportChip(report);
         setStatus(exp, `<b>${report.title || 'Report ready'}</b> ${chips}`, 'done');
+        if (exp === 'strategy') renderStrategyIdeas(report, { showTape: true });
       } else {
         setStatus(exp, 'Already consulted (redundant).', 'done');
       }
@@ -582,6 +729,7 @@ async function runEpisode() {
   logLine(`<span class="ts">[END]</span> terminal=${data.terminal_score.toFixed(3)} · ${verdict}`, 'end');
   setStatus('cos', `Done. Terminal score <b>${data.terminal_score.toFixed(3)}</b>`, data.success ? 'done' : 'active');
   renderBrief(data);
+  finalizeStrategyPanel(data);
 
   runLock = false;
   $('run').disabled = false;
@@ -599,6 +747,11 @@ window.addEventListener('load', () => {
       const w = $('ragWikiCard');
       if (w) w.style.display = ragCb.checked ? 'block' : 'none';
     });
+  }
+  const taskSel = $('task');
+  if (taskSel) {
+    updateTaskHint();
+    taskSel.addEventListener('change', updateTaskHint);
   }
   window.addEventListener('resize', drawStaticWires);
 });

@@ -19,6 +19,8 @@ REQUIRED_EXPERTS_BY_TASK: dict[str, list[str]] = {
     'medium_brief': ['analyst', 'finance', 'strategy', 'hr'],
     'hard_brief': ['analyst', 'finance', 'strategy', 'hr'],
     'expert_brief': ['analyst', 'finance', 'strategy', 'hr'],
+    'risk_brief': ['analyst', 'finance', 'strategy', 'hr'],
+    'crisis_brief': ['analyst', 'finance', 'strategy', 'hr'],
 }
 
 
@@ -151,6 +153,24 @@ class CEOBriefEnvironment:
             )
         raise ValueError(f'Unknown expert {expert_id!r}')
 
+    def _ensure_required_experts(self) -> list[str]:
+        """Run any task-required experts that the policy never consulted.
+
+        This guarantees the strategist (and any other required role) always
+        contributes to the brief, so the UI / grader always has their report.
+        Returns the list of expert ids that were auto-filled.
+        """
+        auto: list[str] = []
+        for expert_id in required_experts_for_task(self.task_name):
+            if expert_id in self.expert_reports:
+                continue
+            try:
+                self.expert_reports[expert_id] = self._run_expert(expert_id)
+                auto.append(expert_id)
+            except Exception:
+                continue
+        return auto
+
     def step(self, action: CoSAction) -> CoSObservation:
         if self.done:
             return self._observe()
@@ -171,31 +191,38 @@ class CEOBriefEnvironment:
                     immediate -= 0.05
                 self.last_issues = report.issues or [f'{action.expert_id}:ok']
         elif action.action_type == 'summarize':
+            self._ensure_required_experts()
             self._compose_brief()
             immediate += 0.04 if len(self.expert_reports) >= 2 else -0.02
             self.last_issues = ['brief_composed']
         elif action.action_type == 'submit':
-            if self.current_brief is None:
+            auto_filled = self._ensure_required_experts()
+            if self.current_brief is None or auto_filled:
                 self._compose_brief()
             self.done = True
             self.last_terminal = grade_episode(
                 self.gt_metrics, self.meta, self.current_brief, self.expert_reports, use_rag=self.use_rag
             )
             immediate += self.last_terminal
-            self.last_issues = ['submitted']
+            self.last_issues = ['submitted'] + (
+                [f'auto_consulted:{",".join(auto_filled)}'] if auto_filled else []
+            )
         else:
             self.last_issues = ['noop']
             immediate -= 0.01
 
         if not self.done and self.step_count >= int(self.meta.get('max_steps', 12)):
-            if self.current_brief is None:
+            auto_filled = self._ensure_required_experts()
+            if self.current_brief is None or auto_filled:
                 self._compose_brief()
             self.done = True
             self.last_terminal = grade_episode(
                 self.gt_metrics, self.meta, self.current_brief, self.expert_reports, use_rag=self.use_rag
             )
             immediate += self.last_terminal
-            self.last_issues = ['forced_termination:max_steps']
+            self.last_issues = ['forced_termination:max_steps'] + (
+                [f'auto_consulted:{",".join(auto_filled)}'] if auto_filled else []
+            )
 
         self.last_reward = round(immediate, 4)
         self.cumulative_reward = round(self.cumulative_reward + self.last_reward, 4)

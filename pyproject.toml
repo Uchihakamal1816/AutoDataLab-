@@ -41,6 +41,6 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-ceo_brief_env = ["tasks/**/*.csv", "tasks/**/*.json", "fixtures/stooq/*.csv"]
+ceo_brief_env = ["tasks/**/*.csv", "tasks/**/*.json", "fixtures/stooq/*.csv", "fixtures/stooq_long/*.csv"]
 memory = ["sops/*.md", "history/*.md", "policies/*.md"]
 server = ["static/**"]

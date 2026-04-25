@@ -1,43 +1,59 @@
 {
-  "episodes": 400,
+  "episodes": 600,
   "lr": 0.003,
   "before": {
     "easy_brief": {
-      "mean_terminal": 0.4372,
-      "mean_cumulative": 0.5092
+      "mean_terminal": 0.4507,
+      "mean_cumulative": 0.4947
     },
     "medium_brief": {
-      "mean_terminal": 0.2686,
-      "mean_cumulative": 0.3346
+      "mean_terminal": 0.4675,
+      "mean_cumulative": 0.5695
     },
     "hard_brief": {
-      "mean_terminal": 0.4591,
-      "mean_cumulative": 0.5011
+      "mean_terminal": 0.3992,
+      "mean_cumulative": 0.4312
     },
     "expert_brief": {
-      "mean_terminal": 0.5814,
-      "mean_cumulative": 0.4874
+      "mean_terminal": 0.5227,
+      "mean_cumulative": 0.5727
+    },
+    "risk_brief": {
+      "mean_terminal": 0.2831,
+      "mean_cumulative": 0.3931
+    },
+    "crisis_brief": {
+      "mean_terminal": 0.3072,
+      "mean_cumulative": 0.3272
     }
   },
   "after": {
     "easy_brief": {
-      "mean_terminal": 0.6042,
-      "mean_cumulative": 0.7432
+      "mean_terminal": 0.8659,
+      "mean_cumulative": 0.9059
     },
     "medium_brief": {
-      "mean_terminal": 0.6816,
-      "mean_cumulative": 0.8286
+      "mean_terminal": 0.8872,
+      "mean_cumulative": 0.9072
     },
     "hard_brief": {
-      "mean_terminal": 0.5605,
-      "mean_cumulative": 0.5965
+      "mean_terminal": 0.8827,
+      "mean_cumulative": 0.8027
     },
     "expert_brief": {
-      "mean_terminal": 0.7664,
-      "mean_cumulative": 0.6784
+      "mean_terminal": 0.8827,
+      "mean_cumulative": 0.7027
+    },
+    "risk_brief": {
+      "mean_terminal": 0.8684,
+      "mean_cumulative": 0.6754
+    },
+    "crisis_brief": {
+      "mean_terminal": 0.8805,
+      "mean_cumulative": 0.7075
     }
   },
-  "mean_terminal_before": 0.4366,
-  "mean_terminal_after": 0.6532,
+  "mean_terminal_before": 0.4051,
+  "mean_terminal_after": 0.8779,
   "curve_path": "training/reward_curves/reward_curve.png"
 }

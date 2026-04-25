@@ -1,0 +1,22 @@
+{
+  "title": "Crisis brief — mid-quarter shock with hiring freeze",
+  "difficulty": "hard",
+  "max_steps": 14,
+  "instruction": "A mid-quarter shock has put the operating plan well behind expectation. Run the full office: tight data quality read, finance variance and break-even sensitivity, defensive strategy on NVDA/AAPL/JPM, and an HR memo that names the variance, the projection path, and the strategy stance. Be conservative: prefer holds/trims unless evidence supports otherwise.",
+  "required_experts": [
+    "analyst",
+    "finance",
+    "strategy",
+    "hr"
+  ],
+  "memo_audience": "CEO, CFO, COO",
+  "hr_required_terms": [
+    "variance",
+    "projection",
+    "strategy",
+    "break-even"
+  ],
+  "plan_value": 140000,
+  "fixed_cost": 48000,
+  "unit_margin": 1800
+}

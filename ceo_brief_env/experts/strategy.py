@@ -227,6 +227,20 @@ class StrategyExpert:
                 memory_snippets.append(snip)
             ext = " | ".join(s for _, __, s in stq)
             summary = summary + f" External tape (Stooq, scraped in RAG mode): {ext}"
+        else:
+            # Non-RAG: no HTTP scrape — still attach multi-hundred-row local “tape” CSVs for grounding text.
+            from ..stooq_scrape import DEFAULT_WATCHLIST, scrape_watchlist_from_long_csv
+
+            stq = scrape_watchlist_from_long_csv(DEFAULT_WATCHLIST, last_n=5)
+            n0 = stq[0][3] if stq else 0
+            for _sym, cite, snip, _n in stq:
+                memory_citations.append(cite)
+                memory_snippets.append(snip)
+            ext = " | ".join(s[2] for s in stq)
+            summary = (
+                summary
+                + f" External tape (bundled long CSV, ~{n0} trading days per symbol, no network): {ext}"
+            )
 
         def _action_token(stance: str) -> str:
             head = stance.split()[0].lower() if stance else "hold"

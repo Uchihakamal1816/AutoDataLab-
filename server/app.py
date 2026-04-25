@@ -93,7 +93,7 @@ def sessions_info() -> dict:
 
 @app.get('/tasks')
 def tasks() -> dict[str, list[str]]:
-    return {'tasks': ['easy_brief', 'medium_brief', 'hard_brief', 'expert_brief']}
+    return {'tasks': ['easy_brief', 'medium_brief', 'hard_brief', 'expert_brief', 'risk_brief', 'crisis_brief']}
 
 
 @app.post('/reset')

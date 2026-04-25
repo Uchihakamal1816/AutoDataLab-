@@ -38,7 +38,7 @@ if str(ROOT) not in sys.path:
 from ceo_brief_env.environment import CEOBriefEnvironment
 from ceo_brief_env.models import CoSAction, CoSObservation
 
-TASKS = ["easy_brief", "medium_brief", "hard_brief", "expert_brief"]
+TASKS = ["easy_brief", "medium_brief", "hard_brief", "expert_brief", "risk_brief", "crisis_brief"]
 
 ACTIONS: List[CoSAction] = [
     CoSAction(action_type="consult", expert_id="analyst"),
@@ -54,6 +54,51 @@ ACTIONS: List[CoSAction] = [
 ]
 N_ACTIONS = len(ACTIONS)
 
+# Extra features when strategy has run: encodes watchlist stances + Present/Future
+# tokens from `ExpertReport.metrics` (see `StrategyExpert` in
+# `ceo_brief_env/experts/strategy.py`). Zeros when strategy not consulted yet.
+N_STRATEGY_IDEA = 10
+
+
+def _stance_float(x: str | int | float | None) -> float:
+    """Map strategy metric tokens to [0,1] (rough buy→sell / trim spectrum)."""
+    t = str(x or "").lower().strip()
+    table: dict[str, float] = {
+        "buy_more": 0.0,
+        "buy": 0.15,
+        "add": 0.3,
+        "hold": 0.5,
+        "reduce": 0.65,
+        "trim": 0.72,
+        "sell": 0.9,
+        "none": 0.12,
+    }
+    if t in table:
+        return table[t]
+    for k, v in table.items():
+        if k and k in t:
+            return v
+    return 0.45
+
+
+def strategy_idea_features(obs: CoSObservation) -> list[float]:
+    r = obs.expert_reports.get("strategy")
+    if r is None:
+        return [0.0] * N_STRATEGY_IDEA
+    m = r.metrics
+    return [
+        1.0,
+        _stance_float(m.get("nvda")),
+        _stance_float(m.get("aapl")),
+        _stance_float(m.get("jpm")),
+        _stance_float(m.get("nvda_present")),
+        _stance_float(m.get("nvda_future")),
+        _stance_float(m.get("aapl_present")),
+        _stance_float(m.get("aapl_future")),
+        _stance_float(m.get("jpm_present")),
+        _stance_float(m.get("jpm_future")),
+    ]
+
 
 def featurize(obs: CoSObservation) -> np.ndarray:
     consulted = set(obs.consulted_experts)
@@ -67,7 +112,8 @@ def featurize(obs: CoSObservation) -> np.ndarray:
     brief = 1.0 if obs.current_brief is not None else 0.0
     step_frac = float(obs.step_count) / max(1, obs.max_steps)
     dq = float(obs.data_quality_score or 0.0)
-    return np.array(task_onehot + expert_bits + [brief, step_frac, dq], dtype=np.float32)
+    base = task_onehot + expert_bits + [brief, step_frac, dq] + strategy_idea_features(obs)
+    return np.array(base, dtype=np.float32)
 
 
 FEAT_DIM = len(featurize(CEOBriefEnvironment().reset("easy_brief")))
@@ -91,8 +137,8 @@ class PolicyNet(nn.Module):
 def load_policy_state_dict_from_file(model: PolicyNet, path: Path) -> str:
     """
     Load a saved ``PolicyNet`` state dict, padding or truncating the first Linear
-    if the checkpoint was trained with a different number of task one-hot slots
-    (e.g. 3 tasks = 10-dim input vs 4 tasks = 11-dim after ``expert_brief``).
+    if the checkpoint was trained with a different input size (e.g. older runs
+    without the 10-dim strategy-idea block, or 3 task slots vs 4).
     Returns a short status string: ``ok`` | ``padded_input_*`` | ``truncated_*``.
     """
     if not path.is_file():

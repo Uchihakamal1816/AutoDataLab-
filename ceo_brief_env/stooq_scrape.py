@@ -21,6 +21,9 @@ _USER_AGENT = "AutoDataLab-Plus/0.1 (research; +https://github.com/)"
 _TIMEOUT_SEC = 8.0
 
 _FIXTURES = Path(__file__).resolve().parent / "fixtures" / "stooq"
+# Bundled multi-hundred-row daily history (Stooq-shaped) for Strategy when RAG is off
+# (no network; used as “enterprise tape” context).
+_LONG_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "stooq_long"
 
 
 def _parse_csv_tail(text: str, symbol: str, last_n: int = 3) -> str:
@@ -85,6 +88,37 @@ def fetch_stooq_daily_csv(symbol: str) -> str:
             return fix
         return "Date,Open,High,Low,Close,Volume\n"
     return raw
+
+
+def read_long_fixture_csv(symbol: str) -> str:
+    """Read the bundled long daily CSV for ``symbol`` (e.g. ``nvda.us``)."""
+    path = _LONG_FIXTURES / f"{symbol.replace('.', '_')}.csv"
+    if not path.is_file():
+        return "Date,Open,High,Low,Close,Volume\n"
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return "Date,Open,High,Low,Close,Volume\n"
+
+
+def scrape_watchlist_from_long_csv(
+    symbols: tuple[str, ...] = DEFAULT_WATCHLIST,
+    last_n: int = 5,
+) -> List[Tuple[str, str, str, int]]:
+    """
+    Like :func:`scrape_watchlist` but only reads local long CSVs (no HTTP).
+    Returns ``(stooq_symbol, citation, snippet, row_count_excl_header)``.
+    Citations use the same ``stooq:`` prefix so graders stay consistent if RAG is on elsewhere.
+    """
+    out: list[tuple[str, str, str, int]] = []
+    for sym in symbols:
+        raw = read_long_fixture_csv(sym)
+        rows = list(csv.reader(io.StringIO(raw)))
+        n_data = max(0, len(rows) - 1)
+        snip = _parse_csv_tail(raw, sym, last_n=last_n)
+        cite = f"stooq:{sym}"
+        out.append((sym, cite, snip, n_data))
+    return out
 
 
 def scrape_watchlist(

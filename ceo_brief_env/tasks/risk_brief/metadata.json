@@ -1,0 +1,22 @@
+{
+  "title": "Board risk brief — data quality, compliance exposure, and capital allocation",
+  "difficulty": "hard",
+  "max_steps": 14,
+  "instruction": "Prepare a board-level risk brief after an internal audit flagged data-quality gaps, delivery exposure, and uncertainty in the operating plan. Run the full office: quantify data issues, finance downside and break-even sensitivity, strategy stance on NVDA/AAPL/JPM under risk controls, and an HR/comms memo that names variance, projection, strategy, and risk governance. The final brief must be suitable for audit committee review.",
+  "required_experts": [
+    "analyst",
+    "finance",
+    "strategy",
+    "hr"
+  ],
+  "memo_audience": "Board audit committee and CFO",
+  "hr_required_terms": [
+    "variance",
+    "projection",
+    "strategy",
+    "risk"
+  ],
+  "plan_value": 125000,
+  "fixed_cost": 44000,
+  "unit_margin": 1700
+}
