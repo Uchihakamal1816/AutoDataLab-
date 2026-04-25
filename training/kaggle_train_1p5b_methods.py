@@ -510,65 +510,68 @@ def evaluate_adapter(args, adapter_dir: Path, eval_dir: Path) -> list[dict[str, 
 
     tok, model = load_for_eval(args.model_id, adapter_dir, use_4bit=not args.no_4bit, hf_token=args.hf_token or None)
     rows: list[dict[str, Any]] = []
-    for task in args.eval_tasks.split(","):
-        task = task.strip()
-        if not task:
-            continue
-        env = CEOBriefEnvironment(shaping="strict", auto_fill_required=False)
-        obs = env.reset(task=task, use_rag=False)
-        rewards: list[float] = []
-        trace: list[dict[str, Any]] = []
-        routed: list[str] = []
-        for _ in range(args.policy_steps):
-            if obs.done:
-                break
-            action, completion = generate_action(tok, model, obs, max_new_tokens=args.eval_new_tokens)
-            obs = env.step(action)
-            rewards.append(float(obs.reward))
-            if action.expert_id in required_experts_for_task(task) and action.expert_id not in routed:
-                routed.append(action.expert_id)
-            trace.append(
+    rag_modes = [s.strip().lower() in {"1", "true", "yes", "rag"} for s in args.eval_rag_modes.split(",")]
+    for use_rag in rag_modes:
+        for task in args.eval_tasks.split(","):
+            task = task.strip()
+            if not task:
+                continue
+            env = CEOBriefEnvironment(shaping="strict", auto_fill_required=False)
+            obs = env.reset(task=task, use_rag=use_rag)
+            rewards: list[float] = []
+            trace: list[dict[str, Any]] = []
+            routed: list[str] = []
+            for _ in range(args.policy_steps):
+                if obs.done:
+                    break
+                action, completion = generate_action(tok, model, obs, max_new_tokens=args.eval_new_tokens)
+                obs = env.step(action)
+                rewards.append(float(obs.reward))
+                if action.expert_id in required_experts_for_task(task) and action.expert_id not in routed:
+                    routed.append(action.expert_id)
+                trace.append(
+                    {
+                        "step": obs.step_count,
+                        "action": action.model_dump(exclude_none=True),
+                        "action_label": action_label(action),
+                        "completion_preview": completion[:300],
+                        "reward": round(float(obs.reward), 4),
+                        "consulted_after": list(obs.consulted_experts),
+                        "model_routed_required": list(routed),
+                    }
+                )
+            fallback: list[str] = []
+            while not obs.done and obs.step_count < obs.max_steps:
+                act = deterministic_next(obs, task)
+                obs = env.step(act)
+                rewards.append(float(obs.reward))
+                fallback.append(action_label(act))
+            rows.append(
                 {
-                    "step": obs.step_count,
-                    "action": action.model_dump(exclude_none=True),
-                    "action_label": action_label(action),
-                    "completion_preview": completion[:300],
-                    "reward": round(float(obs.reward), 4),
-                    "consulted_after": list(obs.consulted_experts),
-                    "model_routed_required": list(routed),
+                    "task": task,
+                    "rag": bool(use_rag),
+                    "action_sequence": [t["action_label"] for t in trace],
+                    "model_routed_required": routed,
+                    "required_experts": required_experts_for_task(task),
+                    "fallback": fallback,
+                    "needed_fallback": bool(fallback),
+                    "policy_reward": round(sum(t["reward"] for t in trace), 4),
+                    "total_reward": round(sum(rewards), 4),
+                    "terminal_score": round(float(obs.terminal_grader_score or 0.0), 4),
+                    "trace": trace,
                 }
             )
-        fallback: list[str] = []
-        while not obs.done and obs.step_count < obs.max_steps:
-            act = deterministic_next(obs, task)
-            obs = env.step(act)
-            rewards.append(float(obs.reward))
-            fallback.append(action_label(act))
-        rows.append(
-            {
-                "task": task,
-                "action_sequence": [t["action_label"] for t in trace],
-                "model_routed_required": routed,
-                "required_experts": required_experts_for_task(task),
-                "fallback": fallback,
-                "needed_fallback": bool(fallback),
-                "policy_reward": round(sum(t["reward"] for t in trace), 4),
-                "total_reward": round(sum(rewards), 4),
-                "terminal_score": round(float(obs.terminal_grader_score or 0.0), 4),
-                "trace": trace,
-            }
-        )
     eval_dir.mkdir(parents=True, exist_ok=True)
     (eval_dir / "evidence.json").write_text(json.dumps(rows, indent=2, default=str), encoding="utf-8")
     md = [
         "# AutoDataLab++ 1.5B Training Evidence",
         "",
-        "| Task | Action sequence | Routed required experts | Needed fallback | Policy reward | Terminal |",
-        "|---|---|---|---:|---:|---:|",
+        "| Task | RAG | Action sequence | Routed required experts | Needed fallback | Policy reward | Terminal |",
+        "|---|---:|---|---|---:|---:|---:|",
     ]
     for row in rows:
         md.append(
-            f"| {row['task']} | `{' -> '.join(row['action_sequence'])}` | "
+            f"| {row['task']} | {row['rag']} | `{' -> '.join(row['action_sequence'])}` | "
             f"{', '.join(row['model_routed_required']) or '-'} | {row['needed_fallback']} | "
             f"{row['policy_reward']} | {row['terminal_score']} |"
         )
@@ -582,7 +585,7 @@ def evaluate_adapter(args, adapter_dir: Path, eval_dir: Path) -> list[dict[str, 
             total += float(t["reward"])
             cum.append(total)
         if cum:
-            plt.plot(range(1, len(cum) + 1), cum, marker="o", label=row["task"])
+            plt.plot(range(1, len(cum) + 1), cum, marker="o", label=f"{row['task']} rag={row['rag']}")
     plt.title("Model-controlled policy reward (strict shaping)")
     plt.xlabel("policy step")
     plt.ylabel("cumulative reward")
@@ -620,6 +623,7 @@ def main() -> int:
     ap.add_argument("--policy-steps", type=int, default=6)
     ap.add_argument("--eval-new-tokens", type=int, default=48)
     ap.add_argument("--eval-tasks", default="expert_brief,risk_brief,crisis_brief")
+    ap.add_argument("--eval-rag-modes", default="false,true", help="comma list: false,true")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
     if args.max_train_examples == 0:
