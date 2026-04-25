@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import sys
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -19,7 +21,38 @@ from ceo_brief_env.environment import CEOBriefEnvironment, oracle_action_for_obs
 from ceo_brief_env.models import CoSAction, CoSObservation
 
 app = FastAPI(title='AutoDataLab++', version='0.1.0')
-SESSIONS: Dict[str, CEOBriefEnvironment] = {}
+
+
+# Issue #12: cap concurrent sessions so a runaway client cannot OOM the Space.
+# Older entries are evicted FIFO when the cap is reached. Override via env.
+MAX_SESSIONS = int(os.getenv('AUTODATALAB_MAX_SESSIONS', '64'))
+
+
+class _SessionStore:
+    """Tiny FIFO-bounded session map: act like a dict, evict oldest on overflow."""
+
+    def __init__(self, capacity: int) -> None:
+        self._capacity = max(1, int(capacity))
+        self._data: 'OrderedDict[str, CEOBriefEnvironment]' = OrderedDict()
+
+    def __setitem__(self, key: str, value: CEOBriefEnvironment) -> None:
+        if key in self._data:
+            self._data.move_to_end(key)
+        self._data[key] = value
+        while len(self._data) > self._capacity:
+            self._data.popitem(last=False)
+
+    def get(self, key: str) -> Optional[CEOBriefEnvironment]:
+        return self._data.get(key)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._data
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+
+SESSIONS: _SessionStore = _SessionStore(MAX_SESSIONS)
 
 STATIC_DIR = Path(__file__).resolve().parent / 'static'
 STATIC_DIR.mkdir(exist_ok=True)
@@ -50,6 +83,12 @@ def root() -> dict[str, str]:
 @app.get('/health')
 def health() -> dict[str, str]:
     return {'status': 'healthy'}
+
+
+@app.get('/sessions')
+def sessions_info() -> dict:
+    """Issue #12 — visibility into the session cap (for debugging deployment)."""
+    return {'active': len(SESSIONS), 'capacity': MAX_SESSIONS}
 
 
 @app.get('/tasks')
