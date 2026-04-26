@@ -33,18 +33,26 @@ from training.kaggle_agent_answers import format_episode_answers
 
 DEFAULT_RUN_PATTERNS: dict[str, list[str]] = {
     "sft": [
+        "training/evidence/sft/evidence.json",
+        "**/training/evidence/sft/evidence.json",
         "**/qwen15b_sft_all/eval/evidence.json",
         "**/qwen15b_sft_v1/eval/evidence.json",
     ],
     "dpo": [
+        "training/evidence/dpo/evidence.json",
+        "**/training/evidence/dpo/evidence.json",
         "**/qwen15b_dpo_all/eval/evidence.json",
         "**/qwen15b_dpo_v1/eval/evidence.json",
     ],
     "sft_dpo": [
+        "training/evidence/sft_dpo/evidence.json",
+        "**/training/evidence/sft_dpo/evidence.json",
         "**/qwen15b_sft_then_dpo_all/eval/evidence.json",
         "**/qwen15b_sft_then_dpo_v1/eval/evidence.json",
     ],
     "grpo_rlvr": [
+        "training/evidence/grpo_rlvr/evidence.json",
+        "**/training/evidence/grpo_rlvr/evidence.json",
         "**/qwen15b_grpo_rlvr_safe_all/eval/evidence.json",
         "**/qwen15b_grpo_rlvr_safe_all/eval_after/evidence.json",
         "**/qwen15b_grpo_rlvr_safe_all/eval_before/evidence.json",

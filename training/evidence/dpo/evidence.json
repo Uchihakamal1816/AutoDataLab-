@@ -1,0 +1,890 @@
+[
+  {
+    "task": "expert_brief",
+    "rag": false,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "needed_fallback": true,
+    "policy_reward": -0.26,
+    "total_reward": 0.7527,
+    "terminal_score": 0.8827,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"analyst\",\n  \"issue\": \"No experts consulted yet.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"finance\",\n  \"issue\": \"finance:ok\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.1,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "risk_brief",
+    "rag": false,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "needed_fallback": true,
+    "policy_reward": -0.26,
+    "total_reward": 0.7539,
+    "terminal_score": 0.8839,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"analyst\",\n  \"issue\": \"No experts consulted yet.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"finance\",\n  \"reason\": \"To understand financial implications and risks associated with the risk brief.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.1,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "crisis_brief",
+    "rag": false,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "needed_fallback": true,
+    "policy_reward": -0.26,
+    "total_reward": 0.7505,
+    "terminal_score": 0.8805,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"analyst\",\n  \"issue\": \"No experts consulted yet.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"finance\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.1,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "expert_brief",
+    "rag": true,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "needed_fallback": true,
+    "policy_reward": -0.26,
+    "total_reward": 0.7625,
+    "terminal_score": 0.8925,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"analyst\",\n  \"issue\": \"No experts consulted yet.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"finance\",\n  \"issue\": \"finance:ok\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.1,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "risk_brief",
+    "rag": true,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "needed_fallback": true,
+    "policy_reward": -0.26,
+    "total_reward": 0.7648,
+    "terminal_score": 0.8948,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"analyst\",\n  \"issue\": \"No experts consulted yet.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"finance\",\n  \"reason\": \"To understand financial implications and risks associated with the risk brief.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.1,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "crisis_brief",
+    "rag": true,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy",
+      "consult:strategy"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "needed_fallback": true,
+    "policy_reward": -0.26,
+    "total_reward": 0.7614,
+    "terminal_score": 0.8914,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"analyst\",\n  \"issue\": \"No experts consulted yet.\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"finance\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.1,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "```json\n{\n  \"action_type\": \"consult\",\n  \"expert_id\": \"strategy\"\n}\n```",
+        "reward": -0.2,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      }
+    ]
+  }
+]

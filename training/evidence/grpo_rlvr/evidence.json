@@ -1,0 +1,896 @@
+[
+  {
+    "task": "expert_brief",
+    "rag": false,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [],
+    "needed_fallback": false,
+    "policy_reward": 1.2827,
+    "total_reward": 1.2827,
+    "terminal_score": 0.8827,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"analyst\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"finance\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"strategy\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "hr"
+        },
+        "action_label": "consult:hr",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"hr\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "summarize"
+        },
+        "action_label": "summarize",
+        "completion_preview": "{\"action_type\":\"summarize\"}",
+        "reward": 0.02,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "submit"
+        },
+        "action_label": "submit",
+        "completion_preview": "{\"action_type\":\"submit\"}",
+        "reward": 0.9427,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "risk_brief",
+    "rag": false,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [],
+    "needed_fallback": false,
+    "policy_reward": 1.2839,
+    "total_reward": 1.2839,
+    "terminal_score": 0.8839,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"analyst\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"finance\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"strategy\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "hr"
+        },
+        "action_label": "consult:hr",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"hr\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "summarize"
+        },
+        "action_label": "summarize",
+        "completion_preview": "{\"action_type\":\"summarize\"}",
+        "reward": 0.02,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "submit"
+        },
+        "action_label": "submit",
+        "completion_preview": "{\"action_type\":\"submit\"}",
+        "reward": 0.9439,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "crisis_brief",
+    "rag": false,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [],
+    "needed_fallback": false,
+    "policy_reward": 1.2805,
+    "total_reward": 1.2805,
+    "terminal_score": 0.8805,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"analyst\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"finance\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"strategy\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "hr"
+        },
+        "action_label": "consult:hr",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"hr\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "summarize"
+        },
+        "action_label": "summarize",
+        "completion_preview": "{\"action_type\":\"summarize\"}",
+        "reward": 0.02,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "submit"
+        },
+        "action_label": "submit",
+        "completion_preview": "{\"action_type\":\"submit\"}",
+        "reward": 0.9405,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "expert_brief",
+    "rag": true,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [],
+    "needed_fallback": false,
+    "policy_reward": 1.2925,
+    "total_reward": 1.2925,
+    "terminal_score": 0.8925,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"analyst\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"finance\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"strategy\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "hr"
+        },
+        "action_label": "consult:hr",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"hr\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "summarize"
+        },
+        "action_label": "summarize",
+        "completion_preview": "{\"action_type\":\"summarize\"}",
+        "reward": 0.02,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "submit"
+        },
+        "action_label": "submit",
+        "completion_preview": "{\"action_type\":\"submit\"}",
+        "reward": 0.9525,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "risk_brief",
+    "rag": true,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [],
+    "needed_fallback": false,
+    "policy_reward": 1.2948,
+    "total_reward": 1.2948,
+    "terminal_score": 0.8948,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"analyst\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"finance\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"strategy\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "hr"
+        },
+        "action_label": "consult:hr",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"hr\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "summarize"
+        },
+        "action_label": "summarize",
+        "completion_preview": "{\"action_type\":\"summarize\"}",
+        "reward": 0.02,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "submit"
+        },
+        "action_label": "submit",
+        "completion_preview": "{ \"action_type\":\"submit\"}",
+        "reward": 0.9548,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      }
+    ]
+  },
+  {
+    "task": "crisis_brief",
+    "rag": true,
+    "action_sequence": [
+      "consult:analyst",
+      "consult:finance",
+      "consult:strategy",
+      "consult:hr",
+      "summarize",
+      "submit"
+    ],
+    "model_routed_required": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "required_experts": [
+      "analyst",
+      "finance",
+      "strategy",
+      "hr"
+    ],
+    "fallback": [],
+    "needed_fallback": false,
+    "policy_reward": 1.2914,
+    "total_reward": 1.2914,
+    "terminal_score": 0.8914,
+    "trace": [
+      {
+        "step": 1,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "analyst"
+        },
+        "action_label": "consult:analyst",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"analyst\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst"
+        ],
+        "model_routed_required": [
+          "analyst"
+        ]
+      },
+      {
+        "step": 2,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "finance"
+        },
+        "action_label": "consult:finance",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"finance\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance"
+        ]
+      },
+      {
+        "step": 3,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "strategy"
+        },
+        "action_label": "consult:strategy",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"strategy\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy"
+        ]
+      },
+      {
+        "step": 4,
+        "action": {
+          "action_type": "consult",
+          "expert_id": "hr"
+        },
+        "action_label": "consult:hr",
+        "completion_preview": "{\"action_type\":\"consult\",\"expert_id\":\"hr\"}",
+        "reward": 0.08,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 5,
+        "action": {
+          "action_type": "summarize"
+        },
+        "action_label": "summarize",
+        "completion_preview": "{\"action_type\":\"summarize\"}",
+        "reward": 0.02,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      },
+      {
+        "step": 6,
+        "action": {
+          "action_type": "submit"
+        },
+        "action_label": "submit",
+        "completion_preview": "{ \"action_type\":\"submit\"}",
+        "reward": 0.9514,
+        "consulted_after": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ],
+        "model_routed_required": [
+          "analyst",
+          "finance",
+          "strategy",
+          "hr"
+        ]
+      }
+    ]
+  }
+]
