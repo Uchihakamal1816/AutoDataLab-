@@ -217,6 +217,37 @@ def _serialize_report(report) -> Optional[dict]:
     return report.model_dump()
 
 
+def _policy_context_recommendation(policy: str, label: str, consulted: List[str]) -> str:
+    consulted_set = set(consulted)
+    if policy == 'oracle':
+        return (
+            "Policy context: oracle consulted every required specialist in the intended dependency order; "
+            "treat this as the upper-bound CEO brief."
+        )
+    if policy == 'trained':
+        missing = [e for e in ['analyst', 'finance', 'strategy', 'hr'] if e not in consulted_set]
+        if 'hr' in missing:
+            return (
+                "Policy context: MLP trained CoS reached the business-critical analyst, finance, and strategy "
+                "inputs, but skipped HR/comms; use the operating recommendations, then request comms review before sending."
+            )
+        return (
+            "Policy context: MLP trained CoS completed the specialist route with learned orchestration; "
+            "use this as the trained-policy recommendation."
+        )
+    if policy == 'roundrobin':
+        return (
+            "Policy context: round-robin covered the experts but used a fixed finance-first order; "
+            "recommend validating data before finance in the next run to reduce sequencing risk."
+        )
+    if policy == 'naive':
+        return (
+            "Policy context: naive baseline stops after the first analyst pass and misses finance, strategy, "
+            "and HR; do not use this brief for executive action."
+        )
+    return f"Policy context: {label} produced this brief from consulted experts: {', '.join(consulted) or 'none'}."
+
+
 @app.get('/visualize/task_meta')
 def task_meta(task: str = 'easy_brief') -> dict:
     task_dir = REPO_ROOT / 'ceo_brief_env' / 'tasks' / task
@@ -267,6 +298,10 @@ def visualize_run(req: VisualizeRequest) -> dict:
         done = bool(obs.done)
 
     final_brief = obs.current_brief.model_dump() if obs.current_brief else None
+    if final_brief is not None:
+        policy_note = _policy_context_recommendation(req.policy, label, list(obs.consulted_experts))
+        recs = list(final_brief.get('recommendations') or [])
+        final_brief['recommendations'] = [policy_note] + recs
     terminal_score = float(obs.terminal_grader_score or 0.0)
     return {
         'task': req.task,
