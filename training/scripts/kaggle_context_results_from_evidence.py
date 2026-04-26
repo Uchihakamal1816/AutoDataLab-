@@ -22,13 +22,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = Path(__file__).resolve().parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
 from ceo_brief_env.environment import CEOBriefEnvironment, required_experts_for_task
 from ceo_brief_env.models import CoSAction
-from training.kaggle_agent_answers import format_episode_answers
+from kaggle_agent_answers import format_episode_answers
 
 
 DEFAULT_RUN_PATTERNS: dict[str, list[str]] = {

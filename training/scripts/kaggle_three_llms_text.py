@@ -35,7 +35,7 @@ os.environ.setdefault("TORCH_COMPILE_DISABLE", "1")
 os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
 
 # Make the env package importable both as a script and from a Kaggle notebook.
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 

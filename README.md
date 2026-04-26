@@ -78,7 +78,9 @@ The image includes a **HEALTHCHECK** on `/health`. Training checkpoints under `t
 - `ceo_brief_env/` — Pydantic models, environment, graders, `tasks/`
 - `inference.py` — oracle / baselines / LLM / trained CoS, `[START]`/`[STEP]`/`[END]` logs
 - `server/app.py` — FastAPI; `/reset`, `/step`, `/state`, `/visualize/run`
-- `training/` — `train_cos_local.py`, checkpoints and curves (optional)
+- `training/scripts/` — re-runnable SFT/DPO/RL/Kaggle scripts and notebooks
+- `training/evidence/` — small replayable evidence JSON plus loss/reward plots
+- `training/checkpoints/` — small local MLP CoS artifacts, when present
 - `subenvs/` — analyst + email/HR tools
 
 ## License

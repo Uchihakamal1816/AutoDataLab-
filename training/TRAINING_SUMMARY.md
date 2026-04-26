@@ -11,17 +11,17 @@ work to Data Analyst, Finance, Strategy, and HR experts.
 
 ## Re-Runnable Scripts
 
-- `train_cos_local.py` trains a small CPU MLP CoS with REINFORCE and now saves
+- `scripts/train_cos_local.py` trains a small CPU MLP CoS with REINFORCE and now saves
   both `reward_curve.png` and `loss_curve.png`. It logs to TensorBoard by
   default via `--report-to tensorboard`; use `--report-to wandb` for Weights &
   Biases.
-- `kaggle_train_1p5b_methods.py` trains Qwen2.5-1.5B policy adapters with SFT,
+- `scripts/kaggle_train_1p5b_methods.py` trains Qwen2.5-1.5B policy adapters with SFT,
   DPO, or SFT->DPO.
-- `kaggle_rl_1p5b_methods.py` trains RL variants (`grpo`, `ppo`,
+- `scripts/kaggle_rl_1p5b_methods.py` trains RL variants (`grpo`, `ppo`,
   `grpo_rlvr`) and saves `train_metrics.json`, `train_curve.png`,
   `loss_curve.png`, TensorBoard logs by default, and evaluation evidence.
-- `kaggle_run_all_1p5b_experiments.py` runs the full SFT/DPO/RL comparison.
-- `kaggle_context_results_from_evidence.py` converts saved evidence into full
+- `scripts/kaggle_run_all_1p5b_experiments.py` runs the full SFT/DPO/RL comparison.
+- `scripts/kaggle_context_results_from_evidence.py` converts saved evidence into full
   textual agent reports without needing adapter files.
 
 ## Committed Evidence
@@ -61,19 +61,19 @@ For future RL runs, `kaggle_rl_1p5b_methods.py` writes per-run
 Generate full textual evidence from the committed JSON:
 
 ```bash
-python3 training/kaggle_context_results_from_evidence.py --roots .
+python3 training/scripts/kaggle_context_results_from_evidence.py --roots .
 ```
 
 Run RL-only methods:
 
 ```bash
-python3 training/kaggle_rl_1p5b_methods.py --method grpo --epochs 1 --max-train-states 80 --report-to tensorboard
-python3 training/kaggle_rl_1p5b_methods.py --method ppo --epochs 1 --max-train-states 80 --report-to tensorboard
-python3 training/kaggle_rl_1p5b_methods.py --method grpo_rlvr --epochs 1 --max-train-states 80 --report-to tensorboard
+python3 training/scripts/kaggle_rl_1p5b_methods.py --method grpo --epochs 1 --max-train-states 80 --report-to tensorboard
+python3 training/scripts/kaggle_rl_1p5b_methods.py --method ppo --epochs 1 --max-train-states 80 --report-to tensorboard
+python3 training/scripts/kaggle_rl_1p5b_methods.py --method grpo_rlvr --epochs 1 --max-train-states 80 --report-to tensorboard
 ```
 
 Run all 1.5B experiments:
 
 ```bash
-python3 training/kaggle_run_all_1p5b_experiments.py --quick
+python3 training/scripts/kaggle_run_all_1p5b_experiments.py --quick
 ```

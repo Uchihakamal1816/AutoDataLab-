@@ -27,5 +27,5 @@ from GRPO, PPO, and GRPO+RLVR runs. These are the source for the RL loss plots.
 Generate full textual context reports with:
 
 ```bash
-python3 training/kaggle_context_results_from_evidence.py --roots .
+python3 training/scripts/kaggle_context_results_from_evidence.py --roots .
 ```

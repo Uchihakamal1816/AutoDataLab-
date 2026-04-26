@@ -54,4 +54,4 @@ curl -X POST https://<your-username>-autodatalab-plus.hf.space/reset \
 ```
 
 Copy that base URL — you will paste it into the Colab notebook
-(`training/cos_grpo_colab.ipynb`) as `BASE_URL`.
+(`training/scripts/cos_grpo_colab.ipynb`) as `BASE_URL`.

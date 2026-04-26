@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any
 
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 
 
 def run(cmd: list[str], cwd: Path) -> None:
@@ -186,7 +186,7 @@ def main() -> int:
         run(
             [
                 py,
-                "training/kaggle_train_1p5b_methods.py",
+                "training/scripts/kaggle_train_1p5b_methods.py",
                 "--method",
                 "sft",
                 "--epochs",
@@ -213,7 +213,7 @@ def main() -> int:
         run(
             [
                 py,
-                "training/kaggle_train_1p5b_methods.py",
+                "training/scripts/kaggle_train_1p5b_methods.py",
                 "--method",
                 "dpo",
                 "--epochs",
@@ -239,7 +239,7 @@ def main() -> int:
         run(
             [
                 py,
-                "training/kaggle_train_1p5b_methods.py",
+                "training/scripts/kaggle_train_1p5b_methods.py",
                 "--method",
                 "sft_then_dpo",
                 "--sft-epochs",
@@ -277,7 +277,7 @@ def main() -> int:
             run(
                 [
                     py,
-                    "training/kaggle_rl_1p5b_methods.py",
+                    "training/scripts/kaggle_rl_1p5b_methods.py",
                     "--method",
                     method,
                     "--init-adapter",
