@@ -1,0 +1,31 @@
+.git/
+.github/
+.cursor/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+cache/
+.env
+.env.*
+*.log
+*.egg-info/
+
+# Local training and evaluation outputs should not be deployed to the CPU Space.
+results/
+train_results/
+training/sft_data/
+training/reward_curves/
+spaces/
+
+# Large model artifacts / notebooks are not needed for the environment UI.
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.ipynb_checkpoints/

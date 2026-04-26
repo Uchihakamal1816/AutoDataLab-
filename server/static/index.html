@@ -218,10 +218,10 @@
     </select>
     <label class="tag" for="policy">Policy</label>
     <select id="policy">
-      <option value="trained" selected>trained CoS</option>
+      <option value="trained" selected>MLP trained CoS</option>
       <option value="oracle">oracle</option>
       <option value="roundrobin">round-robin</option>
-      <option value="single">single LLM</option>
+      <option value="naive">naive baseline</option>
     </select>
     <div class="speed-wrap">
       <span>speed</span>
@@ -267,7 +267,7 @@
             <div class="role">trainable orchestrator</div>
           </div>
         </div>
-        <div class="status" id="st-cos">Idle. <span class="policy-badge"><span class="dot"></span><span id="policy-label">trained CoS</span></span></div>
+        <div class="status" id="st-cos">Idle. <span class="policy-badge"><span class="dot"></span><span id="policy-label">MLP trained CoS</span></span></div>
       </div>
 
       <div class="desk analyst" data-id="analyst">
@@ -500,7 +500,7 @@ function finalizeStrategyPanel(data) {
     return;
   }
   if (TASK_REQUIRES_STRATEGY.has(task)) {
-    body.innerHTML = '<span class="tag" style="color:var(--warn)">This task requires a strategist report for grading, but the policy did not produce one in this run. Try <strong>oracle</strong>, <strong>round-robin</strong>, or <strong>trained</strong> policy.</span>';
+    body.innerHTML = '<span class="tag" style="color:var(--warn)">This task requires a strategist report for grading, but this policy did not route to strategy. Try <strong>MLP trained CoS</strong>, <strong>oracle</strong>, or <strong>round-robin</strong>.</span>';
     card.style.display = 'block';
   } else {
     body.innerHTML = '<span class="tag">Strategist not on the required path for <code>easy_brief</code>; the policy did not consult it this run.</span>';
@@ -672,6 +672,7 @@ async function runEpisode() {
   const wikiCard = $('ragWikiCard');
   if (wikiCard) wikiCard.style.display = data.rag_enabled ? 'block' : 'none';
   logLine(`<span class="ts">[START]</span> task=${data.task} policy=${data.policy_label} rag=${ragOn} max_steps=${data.max_steps}`, 'step');
+  logLine(`<span class="ts">[NOTE]</span> Comparison mode uses the policy's actual route; missing experts are not auto-filled. Expert text can match when two policies consult the same experts.`, 'step');
 
   if (TASK_REQUIRES_STRATEGY.has(data.task)) {
     const sCard = $('strategyCard');

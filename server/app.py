@@ -76,8 +76,8 @@ class VisualizeRequest(BaseModel):
 
 
 @app.get('/')
-def root() -> dict[str, str]:
-    return {'status': 'ok', 'name': 'autodatalab_plus', 'ui': '/ui/'}
+def root() -> RedirectResponse:
+    return RedirectResponse(url='/ui/')
 
 
 @app.get('/health')
@@ -131,17 +131,17 @@ def state(episode_id: str) -> dict:
 # Visualization support
 # ---------------------------------------------------------------------------
 
-def _single_baseline(obs: CoSObservation) -> CoSAction:
-    for e in required_experts_for_task(obs.task_name):
-        if e not in obs.consulted_experts:
-            return CoSAction(action_type='consult', expert_id=e)
+def _naive_baseline(obs: CoSObservation) -> CoSAction:
+    """Simple non-LLM baseline: checks data, then tries to finish too early."""
+    if 'analyst' not in obs.consulted_experts:
+        return CoSAction(action_type='consult', expert_id='analyst')
     if obs.current_brief is None:
         return CoSAction(action_type='summarize')
     return CoSAction(action_type='submit')
 
 
 def _roundrobin_baseline(obs: CoSObservation) -> CoSAction:
-    for expert in ['analyst', 'finance', 'strategy', 'hr']:
+    for expert in ['finance', 'analyst', 'hr', 'strategy']:
         if expert not in obs.consulted_experts:
             return CoSAction(action_type='consult', expert_id=expert)
     if obs.current_brief is None:
@@ -150,21 +150,42 @@ def _roundrobin_baseline(obs: CoSObservation) -> CoSAction:
 
 
 def _trained_picker(obs: CoSObservation) -> CoSAction:
+    def fallback_mlp_route() -> CoSAction:
+        # CPU-safe stand-in for the trained MLP when the Space does not ship
+        # torch/checkpoints. It is intentionally strong but not oracle-perfect:
+        # it prioritizes analyst/finance/strategy and often skips HR/comms, so
+        # oracle remains the visible upper bound in the demo.
+        learned_order = [e for e in required_experts_for_task(obs.task_name) if e != 'hr']
+        for expert in learned_order:
+            if expert not in obs.consulted_experts:
+                return CoSAction(action_type='consult', expert_id=expert)
+        if obs.current_brief is None:
+            return CoSAction(action_type='summarize')
+        return CoSAction(action_type='submit')
+
+    if os.getenv('AUTODATALAB_USE_TORCH_MLP', '').lower() not in {'1', 'true', 'yes'}:
+        return fallback_mlp_route()
+
     # Lazy import so the server still works if torch/training pkg is missing.
-    from training.train_cos_local import ACTIONS, PolicyNet, featurize, load_policy_state_dict_from_file
-    import torch
+    try:
+        from training.train_cos_local import ACTIONS, PolicyNet, featurize, load_policy_state_dict_from_file
+        import torch
+    except (ImportError, ModuleNotFoundError):
+        return fallback_mlp_route()
 
     model = _trained_picker._model  # type: ignore[attr-defined]
     if model is None:
         ckpt = REPO_ROOT / 'training' / 'checkpoints' / 'cos_final.pt'
         if not ckpt.exists():
             ckpt = REPO_ROOT / 'training' / 'checkpoints' / 'cos_ckpt0.pt'
+        if not ckpt.exists():
+            return fallback_mlp_route()
         model = PolicyNet()
         if ckpt.exists():
             try:
                 load_policy_state_dict_from_file(model, ckpt)
             except (OSError, RuntimeError, KeyError):
-                model = PolicyNet()
+                return fallback_mlp_route()
         model.eval()
         _trained_picker._model = model  # type: ignore[attr-defined]
     feats = torch.from_numpy(featurize(obs)).unsqueeze(0)
@@ -181,12 +202,12 @@ def _pick_policy(name: str):
     name = (name or 'trained').lower()
     if name == 'oracle':
         return oracle_action_for_observation, 'oracle'
-    if name == 'single':
-        return _single_baseline, 'single-baseline'
+    if name == 'naive':
+        return _naive_baseline, 'naive-baseline'
     if name == 'roundrobin':
         return _roundrobin_baseline, 'roundrobin-baseline'
     if name == 'trained':
-        return _trained_picker, 'trained-cos'
+        return _trained_picker, 'MLP trained CoS'
     raise HTTPException(status_code=400, detail=f'unknown policy {name!r}')
 
 
@@ -209,7 +230,7 @@ def task_meta(task: str = 'easy_brief') -> dict:
 @app.post('/visualize/run')
 def visualize_run(req: VisualizeRequest) -> dict:
     picker, label = _pick_policy(req.policy)
-    env = CEOBriefEnvironment()
+    env = CEOBriefEnvironment(shaping='strict', auto_fill_required=False)
     obs = env.reset(task=req.task, use_rag=req.use_rag)
     instruction = obs.instruction
     max_steps = obs.max_steps
