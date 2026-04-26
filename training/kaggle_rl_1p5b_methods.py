@@ -332,6 +332,28 @@ def train_candidate_rl(args, out_dir: Path) -> Path:
     print(f"[data] states={len(states)} method={args.method}", flush=True)
 
     metrics: list[dict[str, float]] = []
+    tb_writer = None
+    wandb_run = None
+    if args.report_to == "tensorboard":
+        try:
+            from torch.utils.tensorboard import SummaryWriter
+
+            tb_writer = SummaryWriter(log_dir=str(out_dir / "tb_logs"))
+            print(f"[tracking] tensorboard logs -> {out_dir / 'tb_logs'}", flush=True)
+        except Exception as e:
+            print(f"[tracking] tensorboard unavailable: {e}", flush=True)
+    elif args.report_to == "wandb":
+        try:
+            import wandb
+
+            wandb_run = wandb.init(
+                project=args.wandb_project,
+                name=args.run_name or f"{args.method}_qwen15b",
+                config={k: str(v) for k, v in vars(args).items()},
+            )
+            print(f"[tracking] wandb run -> {wandb_run.url}", flush=True)
+        except Exception as e:
+            print(f"[tracking] wandb unavailable: {e}", flush=True)
     global_step = 0
     for epoch in range(args.epochs):
         random.shuffle(states)
@@ -400,6 +422,11 @@ def train_candidate_rl(args, out_dir: Path) -> Path:
                         "chosen_ok": float(chosen_ok),
                     }
                     metrics.append(row)
+                    if tb_writer is not None:
+                        for key in ("loss", "mean_reward", "best_reward", "chosen_ok"):
+                            tb_writer.add_scalar(f"train/{key}", row[key], global_step)
+                    if wandb_run is not None:
+                        wandb_run.log({f"train/{k}": v for k, v in row.items()}, step=global_step)
                     print(
                         f"[train] step={global_step} loss={row['loss']:.4f} "
                         f"mean_reward={row['mean_reward']:.3f} best_reward={row['best_reward']:.3f} "
@@ -409,6 +436,11 @@ def train_candidate_rl(args, out_dir: Path) -> Path:
         optimizer.zero_grad(set_to_none=True)
 
     adapter_dir = out_dir / "adapter"
+    if tb_writer is not None:
+        tb_writer.flush()
+        tb_writer.close()
+    if wandb_run is not None:
+        wandb_run.finish()
     model.save_pretrained(adapter_dir)
     tok.save_pretrained(adapter_dir)
     (out_dir / "train_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
@@ -419,6 +451,7 @@ def train_candidate_rl(args, out_dir: Path) -> Path:
             xs = [m["step"] for m in metrics]
             ys = [m["best_reward"] for m in metrics]
             ok = [m["chosen_ok"] for m in metrics]
+            losses = [m["loss"] for m in metrics]
             plt.figure(figsize=(8, 4))
             plt.plot(xs, ys, marker="o", label="best candidate reward")
             plt.plot(xs, ok, marker=".", label="policy picks max-reward candidate")
@@ -428,6 +461,18 @@ def train_candidate_rl(args, out_dir: Path) -> Path:
             plt.legend()
             plt.tight_layout()
             plt.savefig(out_dir / "train_curve.png", dpi=160)
+            plt.close()
+
+            plt.figure(figsize=(8, 4))
+            plt.plot(xs, losses, marker="o", color="#9467bd", label="RL objective loss")
+            plt.axhline(0.0, color="black", linewidth=0.8)
+            plt.title(f"{args.method} training loss")
+            plt.xlabel("logged train step")
+            plt.ylabel("loss")
+            plt.grid(True, alpha=0.3)
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(out_dir / "loss_curve.png", dpi=160)
             plt.close()
     except Exception as e:
         print(f"[plot] train curve skipped: {e}", flush=True)
@@ -635,6 +680,13 @@ def main() -> int:
     ap.add_argument("--eval-new-tokens", type=int, default=48)
     ap.add_argument("--eval-tasks", default="expert_brief,risk_brief,crisis_brief")
     ap.add_argument("--eval-rag-modes", default="false,true", help="comma list: false,true")
+    ap.add_argument(
+        "--report-to",
+        choices=("none", "tensorboard", "wandb"),
+        default=os.environ.get("REPORT_TO", "tensorboard"),
+        help="experimental tracking backend for RL loss/reward logs; default tensorboard for judging",
+    )
+    ap.add_argument("--wandb-project", default=os.environ.get("WANDB_PROJECT", "autodatalab-plus"))
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
     if args.max_train_states == 0:

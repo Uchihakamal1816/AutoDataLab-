@@ -332,13 +332,15 @@ def train_sft(args, out_dir: Path) -> Path:
     collator = DataCollatorForSeq2Seq(loaded.tokenizer, model=loaded.model, padding=True)
     train_args = TrainingArguments(
         output_dir=str(out_dir / "trainer"),
+        logging_dir=str(out_dir / "trainer" / "logs"),
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         num_train_epochs=args.epochs,
         learning_rate=args.lr,
         logging_steps=5,
         save_strategy="no",
-        report_to="none",
+        report_to=args.report_to,
+        run_name=args.run_name or f"{args.method}_qwen15b",
         fp16=True,
         optim="paged_adamw_8bit" if not args.no_4bit else "adamw_torch",
         max_grad_norm=0.3,
@@ -421,13 +423,15 @@ def train_dpo(args, out_dir: Path, base_adapter: Path | None = None) -> Path:
 
     cfg = DPOConfig(
         output_dir=str(out_dir / "trainer"),
+        logging_dir=str(out_dir / "trainer" / "logs"),
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         num_train_epochs=args.dpo_epochs if args.method == "sft_then_dpo" else args.epochs,
         learning_rate=args.dpo_lr,
         logging_steps=5,
         save_strategy="no",
-        report_to="none",
+        report_to=args.report_to,
+        run_name=args.run_name or f"{args.method}_qwen15b",
         fp16=True,
         beta=args.dpo_beta,
         max_length=args.max_length,
@@ -624,6 +628,12 @@ def main() -> int:
     ap.add_argument("--eval-new-tokens", type=int, default=48)
     ap.add_argument("--eval-tasks", default="expert_brief,risk_brief,crisis_brief")
     ap.add_argument("--eval-rag-modes", default="false,true", help="comma list: false,true")
+    ap.add_argument(
+        "--report-to",
+        choices=("none", "tensorboard", "wandb"),
+        default=os.environ.get("REPORT_TO", "tensorboard"),
+        help="experimental tracking backend for Trainer logs; default tensorboard for judging",
+    )
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
     if args.max_train_examples == 0:

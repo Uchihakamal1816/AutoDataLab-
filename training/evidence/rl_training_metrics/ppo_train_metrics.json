@@ -1,0 +1,114 @@
+[
+  {
+    "step": 5,
+    "epoch": 0.0,
+    "loss": -0.0035487692803144455,
+    "mean_reward": -0.2857142984867096,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 10,
+    "epoch": 0.0,
+    "loss": 0.010597697459161282,
+    "mean_reward": 0.021428560838103294,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 15,
+    "epoch": 0.0,
+    "loss": 0.0016170741291716695,
+    "mean_reward": -0.5142857432365417,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 20,
+    "epoch": 0.0,
+    "loss": -0.0015056730480864644,
+    "mean_reward": -0.3428571820259094,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 25,
+    "epoch": 0.0,
+    "loss": 0.00020530394976958632,
+    "mean_reward": -0.3428571820259094,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 30,
+    "epoch": 0.0,
+    "loss": -0.028170008212327957,
+    "mean_reward": 0.021428560838103294,
+    "best_reward": 0.6499999761581421,
+    "chosen_ok": 0.0
+  },
+  {
+    "step": 35,
+    "epoch": 0.0,
+    "loss": 0.024851715192198753,
+    "mean_reward": -0.15714287757873535,
+    "best_reward": 0.6499999761581421,
+    "chosen_ok": 0.0
+  },
+  {
+    "step": 40,
+    "epoch": 1.0,
+    "loss": 0.005607741419225931,
+    "mean_reward": -0.10000000894069672,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 45,
+    "epoch": 1.0,
+    "loss": -0.038788437843322754,
+    "mean_reward": -0.3428571820259094,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 50,
+    "epoch": 1.0,
+    "loss": -0.03362070024013519,
+    "mean_reward": -0.15714287757873535,
+    "best_reward": 0.6499999761581421,
+    "chosen_ok": 0.0
+  },
+  {
+    "step": 55,
+    "epoch": 1.0,
+    "loss": 0.003274704795330763,
+    "mean_reward": -0.5142857432365417,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 60,
+    "epoch": 1.0,
+    "loss": 0.02983778901398182,
+    "mean_reward": 0.021428560838103294,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 65,
+    "epoch": 1.0,
+    "loss": -0.002347290515899658,
+    "mean_reward": -0.2785714566707611,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  },
+  {
+    "step": 70,
+    "epoch": 1.0,
+    "loss": -0.0037386759649962187,
+    "mean_reward": 0.021428560838103294,
+    "best_reward": 1.0,
+    "chosen_ok": 1.0
+  }
+]

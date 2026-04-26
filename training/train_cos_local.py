@@ -224,6 +224,13 @@ def main() -> int:
         "over-consult, premature summarize) and a small early-finish bonus. "
         "Terminal grader is unchanged either way.",
     )
+    ap.add_argument(
+        "--report-to",
+        choices=("none", "tensorboard", "wandb"),
+        default="tensorboard",
+        help="experimental tracking backend for loss/reward logs",
+    )
+    ap.add_argument("--wandb-project", default="autodatalab-plus")
     args = ap.parse_args()
 
     random.seed(args.seed)
@@ -237,6 +244,29 @@ def main() -> int:
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     curve_dir.mkdir(parents=True, exist_ok=True)
 
+    tb_writer = None
+    wandb_run = None
+    if args.report_to == "tensorboard":
+        try:
+            from torch.utils.tensorboard import SummaryWriter
+
+            tb_writer = SummaryWriter(log_dir=str(curve_dir / "tb_logs"))
+            print(f"[tracking] tensorboard logs -> {curve_dir / 'tb_logs'}")
+        except Exception as exc:
+            print(f"[tracking] tensorboard unavailable: {exc}")
+    elif args.report_to == "wandb":
+        try:
+            import wandb
+
+            wandb_run = wandb.init(
+                project=args.wandb_project,
+                name=f"mlp_cos_reinforce_seed{args.seed}",
+                config=vars(args),
+            )
+            print(f"[tracking] wandb run -> {wandb_run.url}")
+        except Exception as exc:
+            print(f"[tracking] wandb unavailable: {exc}")
+
     torch.save(policy.state_dict(), ckpt_dir / "cos_ckpt0.pt")
     before = evaluate(policy, env, n=5)
     print(f"[START] local REINFORCE training | episodes={args.episodes} | lr={args.lr}")
@@ -245,6 +275,7 @@ def main() -> int:
     optim = torch.optim.Adam(policy.parameters(), lr=args.lr)
     reward_history: list[float] = []
     terminal_history: list[float] = []
+    loss_history: list[float] = []
     window: list[float] = []
     for ep in range(1, args.episodes + 1):
         task = TASKS[ep % len(TASKS)]
@@ -260,8 +291,19 @@ def main() -> int:
         optim.step()
 
         ep_reward = sum(rewards)
+        loss_value = float(loss.detach().cpu().item())
         reward_history.append(ep_reward)
         terminal_history.append(terminal)
+        loss_history.append(loss_value)
+        if tb_writer is not None:
+            tb_writer.add_scalar("train/loss", loss_value, ep)
+            tb_writer.add_scalar("train/episode_reward", ep_reward, ep)
+            tb_writer.add_scalar("train/terminal_score", terminal, ep)
+        if wandb_run is not None:
+            wandb_run.log(
+                {"train/loss": loss_value, "train/episode_reward": ep_reward, "train/terminal_score": terminal},
+                step=ep,
+            )
         window.append(ep_reward)
         if len(window) > 20:
             window.pop(0)
@@ -269,7 +311,7 @@ def main() -> int:
             print(
                 f"[STEP] ep={ep:04d} task={task} steps={steps} "
                 f"ep_reward={ep_reward:+.3f} terminal={terminal:.3f} "
-                f"ma20={np.mean(window):+.3f}"
+                f"loss={loss_value:+.4f} ma20={np.mean(window):+.3f}"
             )
 
     torch.save(policy.state_dict(), ckpt_dir / "cos_final.pt")
@@ -291,6 +333,27 @@ def main() -> int:
     fig.savefig(curve_path, dpi=130)
     plt.close(fig)
 
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    loss_avg = [np.mean(loss_history[max(0, i - 20): i + 1]) for i in range(len(loss_history))]
+    ax.plot(loss_history, color="#999", alpha=0.45, label="policy loss")
+    ax.plot(loss_avg, color="#9467bd", label="20-ep moving avg")
+    ax.axhline(0.0, color="#222", linewidth=0.8)
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("REINFORCE loss")
+    ax.set_title("AutoDataLab++ Chief of Staff - loss curve")
+    ax.legend(loc="best")
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    loss_curve_path = curve_dir / "loss_curve.png"
+    fig.savefig(loss_curve_path, dpi=130)
+    plt.close(fig)
+
+    if tb_writer is not None:
+        tb_writer.flush()
+        tb_writer.close()
+    if wandb_run is not None:
+        wandb_run.finish()
+
     summary = {
         "episodes": args.episodes,
         "lr": args.lr,
@@ -299,9 +362,10 @@ def main() -> int:
         "mean_terminal_before": round(float(np.mean([v["mean_terminal"] for v in before.values()])), 4),
         "mean_terminal_after": round(float(np.mean([v["mean_terminal"] for v in after.values()])), 4),
         "curve_path": str(curve_path.relative_to(ROOT)),
+        "loss_curve_path": str(loss_curve_path.relative_to(ROOT)),
     }
     (curve_dir / "before_after.json").write_text(json.dumps(summary, indent=2))
-    print(f"[END] saved curve={curve_path.name} final_ckpt=cos_final.pt")
+    print(f"[END] saved curve={curve_path.name} loss_curve={loss_curve_path.name} final_ckpt=cos_final.pt")
     print(f"[END] before_mean={summary['mean_terminal_before']} after_mean={summary['mean_terminal_after']}")
     return 0
 
